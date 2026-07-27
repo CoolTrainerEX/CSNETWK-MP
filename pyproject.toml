@@ -17,7 +17,7 @@ dependencies = []
 
 [project.urls]
 Homepage = "https://github.com/CoolTrainerEX/CSNETWK-MP#readme"
-Documentation = "https://readthedocs.org"
+Documentation = "https://CoolTrainerEX.github.io/CSNETWK-MP"
 Repository = "https://github.com/CoolTrainerEX/CSNETWK-MP.git"
 Issues = "https://github.com/CoolTrainerEX/CSNETWK-MP/issues"
 Changelog = "https://github.com/CoolTrainerEX/CSNETWK-MP/blob/master/CHANGELOG.md"
