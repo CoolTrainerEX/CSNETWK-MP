@@ -1,0 +1,25 @@
+[project]
+name = "csnetwk-mp"
+version = "0.1.0"
+authors = [
+    { name = "Justin Ryan Uy", email = "justin_ryan_uy@dlsu.edu.ph" },
+    { name = "Adrian Nathaniel Co", email = "adrian_nathaniel_co@dlsu.edu.ph" },
+    { name = "Jayhan Charlizze Esparas", email = "jayhan_charlizze_esparas@dlsu.edu.ph" },
+    { name = "Ethan Jude Reyes", email = "ethan_jude_r_reyes@dlsu.edu.ph" },
+]
+description = "Magic: The Gathering Multiplayer Network Protocol"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["TCP", "JSON", "Authoritative", "Framing", "Priority"]
+requires-python = ">=3.14"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=9.1.1", "sphinx>=9.1.0"]
+
+[tool.ruff.lint]
+select = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
