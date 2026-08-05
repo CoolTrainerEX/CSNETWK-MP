@@ -1,5 +1,5 @@
 def main():
-    print("Hello from csnetwk-mp!")
+    print("Hello from shared!")
 
 
 if __name__ == "__main__":

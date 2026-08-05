@@ -2,6 +2,14 @@ version = 1
 revision = 3
 requires-python = ">=3.14"
 
+[manifest]
+members = [
+    "client",
+    "csnetwk-mp",
+    "server",
+    "shared",
+]
+
 [[package]]
 name = "alabaster"
 version = "1.0.0"
@@ -63,6 +71,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/3d/c6/eee9dca4439b1061f76373f06ea855678cc4a64c1c3c90b50e479edbb8eb/charset_normalizer-3.4.9-cp314-cp314t-win_arm64.whl", hash = "sha256:19ac87f93086ce37b86e098888555c4b4bc48102279bae3350098c0ed664b501", size = 158037, upload-time = "2026-07-07T14:34:35.018Z" },
     { url = "https://files.pythonhosted.org/packages/98/2b/f97f1c193fb855c345d678f5077d6926034db0722df74c8f057020e05a25/charset_normalizer-3.4.9-py3-none-any.whl", hash = "sha256:68e5f26a1ad57ded6d1cfb85331d1c1a195314756471d97758c48498bb4dcdf5", size = 64538, upload-time = "2026-07-07T14:34:56.993Z" },
 ]
+
+[[package]]
+name = "client"
+version = "0.1.0"
+source = { virtual = "packages/client" }
 
 [[package]]
 name = "colorama"
@@ -236,6 +249,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/ae/f9/41dc953bbeb056c17
 wheels = [
     { url = "https://files.pythonhosted.org/packages/04/54/6f679c435d28e0a568d8e8a7c0a93a09010818634c3c3907fc98d8983770/roman_numerals-4.1.0-py3-none-any.whl", hash = "sha256:647ba99caddc2cc1e55a51e4360689115551bf4476d90e8162cf8c345fe233c7", size = 7676, upload-time = "2025-12-17T18:25:33.098Z" },
 ]
+
+[[package]]
+name = "server"
+version = "0.1.0"
+source = { virtual = "packages/server" }
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+source = { virtual = "packages/shared" }
 
 [[package]]
 name = "snowballstemmer"
