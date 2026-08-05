@@ -89,7 +89,7 @@ wheels = [
 [[package]]
 name = "csnetwk-mp"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 
 [package.dev-dependencies]
 dev = [
@@ -258,7 +258,7 @@ source = { virtual = "packages/server" }
 [[package]]
 name = "shared"
 version = "0.1.0"
-source = { virtual = "packages/shared" }
+source = { editable = "packages/shared" }
 
 [[package]]
 name = "snowballstemmer"

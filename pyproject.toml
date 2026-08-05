@@ -22,6 +22,11 @@ Repository = "https://github.com/CoolTrainerEX/CSNETWK-MP.git"
 Issues = "https://github.com/CoolTrainerEX/CSNETWK-MP/issues"
 Changelog = "https://github.com/CoolTrainerEX/CSNETWK-MP/blob/master/CHANGELOG.md"
 
+
+[project.scripts]
+client = "packages.client.main:main"
+server = "packages.server.main:main"
+
 [dependency-groups]
 dev = ["pytest>=9.1.1", "sphinx>=9.1.0"]
 
@@ -30,6 +35,9 @@ select = ["D"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.uv]
+package = true
 
 [tool.uv.sources]
 shared = { workspace = true }
