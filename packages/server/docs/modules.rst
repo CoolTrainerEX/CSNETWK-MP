@@ -1,5 +1,5 @@
-CSNETWK-MP
-==========
+server
+======
 
 .. toctree::
    :maxdepth: 4
