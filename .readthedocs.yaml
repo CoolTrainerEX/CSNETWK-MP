@@ -9,6 +9,11 @@ build:
   os: ubuntu-24.04
   tools:
     python: "3.13"
+  jobs:
+    pre_build:
+      - sphinx-apidoc -o ./docs/client ./packages/client
+      - sphinx-apidoc -o ./docs/server ./packages/server
+      - sphinx-apidoc -o ./docs/shared ./packages/shared
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
