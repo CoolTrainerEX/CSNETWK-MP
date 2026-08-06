@@ -1,16 +1,37 @@
 # CSNETWK MP
 
-## Build
+## Build and Run
 
-TODO
+1. Install [uv](https://docs.astral.sh/uv/).
+2. Go to the project directory.
 
-## Run
+### Server
 
-TODO
+```sh
+uv run server
+```
+
+### Client
+
+```sh
+uv run client
+```
 
 ## Verbose Mode
 
-TODO
+### Server
+
+```sh
+uv run server -v # or
+uv run server --verbose
+```
+
+### Client
+
+```sh
+uv run server -- -v # or
+uv run server -- --verbose
+```
 
 ## Work Distribution
 
