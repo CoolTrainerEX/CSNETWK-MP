@@ -1,9 +1,12 @@
 """Main server module."""
 
+from packages.server.connection import connect
+from packages.server.state import run
+
 
 def main():
     """Main server function."""
-    print("Hello from server!")
+    connect(run)
 
 
 if __name__ == "__main__":

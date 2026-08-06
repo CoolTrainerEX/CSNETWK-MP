@@ -103,7 +103,7 @@ class PlayerReady(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.PLAYER_READY]
+    type: Literal[Type.PLAYER_READY] = Type.PLAYER_READY
     seq_num: int
     player_id: PlayerModel
     deck_list: set[CardModel]
@@ -219,7 +219,7 @@ class GameStateUpdate(BaseModel):
         library_counts: dict[PlayerModel, int]
         land_played_this_turn: bool
 
-    type: Literal[Type.GAME_STATE_UPDATE]
+    type: Literal[Type.GAME_STATE_UPDATE] = Type.GAME_STATE_UPDATE
     seq_num: int
     state: __LobbyState | __GameState
 
@@ -238,7 +238,7 @@ class MulliganChoice(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.MULLIGAN_CHOICE]
+    type: Literal[Type.MULLIGAN_CHOICE] = Type.MULLIGAN_CHOICE
     seq_num: int
     keep: bool
     cards_to_bottom: set[CardModel]
@@ -260,7 +260,7 @@ class PhaseTransition(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.PHASE_TRANSITION]
+    type: Literal[Type.PHASE_TRANSITION] = Type.PHASE_TRANSITION
     seq_num: int
     from_phase: GamePhase | CombatStep
     to_phase: GamePhase | CombatStep
@@ -282,7 +282,7 @@ class PriorityGrant(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.PRIORITY_GRANT]
+    type: Literal[Type.PRIORITY_GRANT] = Type.PRIORITY_GRANT
     player_id: PlayerModel
     seq_num: int
     time_limit_ms: int
@@ -299,7 +299,7 @@ class PriorityPass(BaseModel):
         seq_num (int): Must match current :attr:`PriorityGrant.seq_num`
     """
 
-    type: Literal[Type.PRIORITY_PASS]
+    type: Literal[Type.PRIORITY_PASS] = Type.PRIORITY_PASS
     seq_num: int
 
 
@@ -318,7 +318,7 @@ class CastSpell(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.CAST_SPELL]
+    type: Literal[Type.CAST_SPELL] = Type.CAST_SPELL
     seq_num: int
     card_id: CardModel
     targets: set[ID]
@@ -353,7 +353,7 @@ class ActivateAbility(BaseModel):
         mana: dict[Card.Color, int]
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.ACTIVATE_ABILITY]
+    type: Literal[Type.ACTIVATE_ABILITY] = Type.ACTIVATE_ABILITY
     seq_num: int
     source_id: CardModel
     ability_index: int
@@ -398,7 +398,7 @@ class StackPush(StackItem):
         seq_num (int): Server-issued sequence number
     """
 
-    type: Literal[Type.STACK_PUSH]
+    type: Literal[Type.STACK_PUSH] = Type.STACK_PUSH
     seq_num: int
 
 
@@ -419,7 +419,7 @@ class TriggerOrder(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.TRIGGER_ORDER]
+    type: Literal[Type.TRIGGER_ORDER] = Type.TRIGGER_ORDER
     seq_num: int
     player_id: PlayerModel
     trigger_ids: set[TriggerID]
@@ -437,7 +437,7 @@ class TriggerOrderResponse(BaseModel):
         ordered_trigger_ids (set[TriggerID]):
     """
 
-    type: Literal[Type.TRIGGER_ORDER_RESPONSE]
+    type: Literal[Type.TRIGGER_ORDER_RESPONSE] = Type.TRIGGER_ORDER_RESPONSE
     seq_num: int
     ordered_trigger_ids: set[TriggerID]
 
@@ -459,7 +459,7 @@ class TriggerChoice(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.TRIGGER_CHOICE]
+    type: Literal[Type.TRIGGER_CHOICE] = Type.TRIGGER_CHOICE
     seq_num: int
     trigger_id: TriggerID
     source_id: CardModel
@@ -482,7 +482,7 @@ class TriggerChoiceResponse(BaseModel):
         chosen_target (ID | None): `ID` only when :attr:`TriggerChoiceResponse.accept` = `True` AND :attr:`TriggerChoice.requires_target` = `True`; `None` when :attr:`TriggerChoiceResponse.accept` = False or :attr:`TriggerChoice.requires_target` = `False`
     """
 
-    type: Literal[Type.TRIGGER_CHOICE_RESPONSE]
+    type: Literal[Type.TRIGGER_CHOICE_RESPONSE] = Type.TRIGGER_CHOICE_RESPONSE
     seq_num: int
     trigger_id: TriggerID
     accept: bool
@@ -526,7 +526,7 @@ class StackResolve(BaseModel):
         target: ID
         amount: int | None
 
-    type: Literal[Type.STACK_RESOLVE]
+    type: Literal[Type.STACK_RESOLVE] = Type.STACK_RESOLVE
     seq_num: int
     stack_item_id: StackID
     result: Result
@@ -579,7 +579,7 @@ class DeclareAttackers(BaseModel):
             """
             return hash(self.creature_id)
 
-    type: Literal[Type.DECLARE_ATTACKERS]
+    type: Literal[Type.DECLARE_ATTACKERS] = Type.DECLARE_ATTACKERS
     seq_num: int
     attackers: set[__Attacker]
 
@@ -630,7 +630,7 @@ class DeclareBlockers(BaseModel):
             """
             return hash(self.creature_id)
 
-    type: Literal[Type.DECLARE_BLOCKERS]
+    type: Literal[Type.DECLARE_BLOCKERS] = Type.DECLARE_BLOCKERS
     seq_num: int
     attackers: set[__Blocker]
 
@@ -649,7 +649,7 @@ class AssignDamageOrder(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.ASSIGN_DAMAGE_ORDER]
+    type: Literal[Type.ASSIGN_DAMAGE_ORDER] = Type.ASSIGN_DAMAGE_ORDER
     seq_num: int
     attacker_id: CreatureCardModel
     blocker_order: set[CreatureCardModel]
@@ -684,7 +684,7 @@ class CombatDamageResult(BaseModel):
         amount: int
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.COMBAT_DAMAGE_RESULT]
+    type: Literal[Type.COMBAT_DAMAGE_RESULT] = Type.COMBAT_DAMAGE_RESULT
     seq_num: int
     damage_events: set[__DamageEvent]
     life_totals: dict[PlayerModel, int]
@@ -704,7 +704,7 @@ class PlayLand(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.PLAY_LAND]
+    type: Literal[Type.PLAY_LAND] = Type.PLAY_LAND
     seq_num: int
     card_id: LandCardModel
 
@@ -722,7 +722,7 @@ class Discard(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.DISCARD]
+    type: Literal[Type.DISCARD] = Type.DISCARD
     seq_num: int
     card_ids: set[CardModel]
 
@@ -740,7 +740,7 @@ class Concede(BaseModel):
     """
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.CONCEDE]
+    type: Literal[Type.CONCEDE] = Type.CONCEDE
     seq_num: int
     player_id: PlayerModel
 
@@ -765,7 +765,7 @@ class GameOver(BaseModel):
         DISCONNECT = auto()
 
     model_config = {"arbitrary_types_allowed": True}
-    type: Literal[Type.GAME_OVER]
+    type: Literal[Type.GAME_OVER] = Type.GAME_OVER
     seq_num: int
     winner_id: PlayerModel
     loser_id: PlayerModel
@@ -814,7 +814,7 @@ class Error(BaseModel):
         DUPLICATE_ID = auto()
         """The :attr:`PlayerReady.player_id` in a :class:`PlayerReady` PDU is already claimed by the other connected player in this lobby session"""
 
-    type: Literal[Type.ERROR]
+    type: Literal[Type.ERROR] = Type.ERROR
     seq_num: int
     code: Code
     message: str
@@ -833,7 +833,7 @@ class Ping(BaseModel):
         timestamp (float):
     """
 
-    type: Literal[Type.PING]
+    type: Literal[Type.PING] = Type.PING
     seq_num: int
     timestamp: float
 
@@ -850,7 +850,7 @@ class Pong(BaseModel):
         timestamp (float):
     """
 
-    type: Literal[Type.PONG]
+    type: Literal[Type.PONG] = Type.PONG
     seq_num: int
     timestamp: float
 
