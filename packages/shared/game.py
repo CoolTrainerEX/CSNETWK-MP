@@ -1,0 +1,3 @@
+"""Game module."""
+
+ID = str

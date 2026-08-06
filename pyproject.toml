@@ -13,7 +13,9 @@ license = "MIT"
 license-files = ["LICENSE"]
 keywords = ["TCP", "JSON", "Authoritative", "Framing", "Priority"]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "pydantic>=2.13.4",
+]
 
 [project.urls]
 Homepage = "https://github.com/CoolTrainerEX/CSNETWK-MP#readme"
