@@ -1,7 +1,7 @@
 cards module
 ============
 
-.. automodule:: cards
+.. automodule:: shared.cards
    :members:
    :show-inheritance:
    :undoc-members:

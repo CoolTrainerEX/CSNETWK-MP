@@ -1,7 +1,7 @@
 pdu module
 ==========
 
-.. automodule:: pdu
+.. automodule:: shared.pdu
    :members:
    :show-inheritance:
    :undoc-members:

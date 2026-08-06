@@ -1,7 +1,7 @@
 game module
 ===========
 
-.. automodule:: game
+.. automodule:: shared.game
    :members:
    :show-inheritance:
    :undoc-members:
