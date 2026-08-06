@@ -29,8 +29,8 @@ uv run server --verbose
 ### Client
 
 ```sh
-uv run client -- -v # or
-uv run client -- --verbose
+uv run client -v # or
+uv run client --verbose
 ```
 
 ## Work Distribution
