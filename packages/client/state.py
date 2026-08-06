@@ -2,12 +2,11 @@
 
 from packages.shared.game import CombatStep, Game, GamePhase, State
 from packages.shared.pdu import PDU
-from packages.shared.player import Player
 
 game = Game()
 
 
-def run(pdu: PDU) -> PDU:
+def run(pdu: PDU) -> PDU | None:
     """Run on receive.
 
     Args:
@@ -55,7 +54,7 @@ def run(pdu: PDU) -> PDU:
             return game_over(pdu)
 
 
-def lobby(pdu: PDU) -> PDU:
+def lobby(pdu: PDU) -> PDU | None:
     """Lobby state.
 
     Args:
@@ -67,7 +66,7 @@ def lobby(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def game_setup(pdu: PDU) -> PDU:
+def game_setup(pdu: PDU) -> PDU | None:
     """Game Setup state.
 
     Args:
@@ -79,7 +78,7 @@ def game_setup(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def mulligan(pdu: PDU) -> PDU:
+def mulligan(pdu: PDU) -> PDU | None:
     """Mulligan state.
 
     Args:
@@ -91,7 +90,7 @@ def mulligan(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def game_over(pdu: PDU) -> PDU:
+def game_over(pdu: PDU) -> PDU | None:
     """Game Over State.
 
     Args:
@@ -103,7 +102,7 @@ def game_over(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def untap(pdu: PDU) -> PDU:
+def untap(pdu: PDU) -> PDU | None:
     """In-Game Untap Phase.
 
     Args:
@@ -115,7 +114,7 @@ def untap(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def upkeep(pdu: PDU) -> PDU:
+def upkeep(pdu: PDU) -> PDU | None:
     """In-Game Upkeep Phase.
 
     Args:
@@ -127,7 +126,7 @@ def upkeep(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def draw(pdu: PDU) -> PDU:
+def draw(pdu: PDU) -> PDU | None:
     """In-Game Draw Phase.
 
     Args:
@@ -139,7 +138,7 @@ def draw(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def precombat_main(pdu: PDU) -> PDU:
+def precombat_main(pdu: PDU) -> PDU | None:
     """In-Game Precombat Main Phase.
 
     Args:
@@ -151,7 +150,7 @@ def precombat_main(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def postcombat_main(pdu: PDU) -> PDU:
+def postcombat_main(pdu: PDU) -> PDU | None:
     """In-Game Postcombat Main Phase.
 
     Args:
@@ -163,7 +162,7 @@ def postcombat_main(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def end_step(pdu: PDU) -> PDU:
+def end_step(pdu: PDU) -> PDU | None:
     """In-Game End Step Phase.
 
     Args:
@@ -175,7 +174,7 @@ def end_step(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def cleanup(pdu: PDU) -> PDU:
+def cleanup(pdu: PDU) -> PDU | None:
     """In-Game Cleanup Phase.
 
     Args:
@@ -187,7 +186,7 @@ def cleanup(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def begin_combat(pdu: PDU) -> PDU:
+def begin_combat(pdu: PDU) -> PDU | None:
     """Combat Begin Combat Step.
 
     Args:
@@ -199,7 +198,7 @@ def begin_combat(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def declare_attackers(pdu: PDU) -> PDU:
+def declare_attackers(pdu: PDU) -> PDU | None:
     """Combat Declare Attackers Step.
 
     Args:
@@ -211,7 +210,7 @@ def declare_attackers(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def declare_blockers(pdu: PDU) -> PDU:
+def declare_blockers(pdu: PDU) -> PDU | None:
     """Combat Declare Blockers Step.
 
     Args:
@@ -223,7 +222,7 @@ def declare_blockers(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def assign_damage_order(pdu: PDU) -> PDU:
+def assign_damage_order(pdu: PDU) -> PDU | None:
     """Combat Assign Damage Order Step.
 
     Args:
@@ -235,7 +234,7 @@ def assign_damage_order(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def first_strike_damage(pdu: PDU) -> PDU:
+def first_strike_damage(pdu: PDU) -> PDU | None:
     """Combat First Strike Damage Step.
 
     Args:
@@ -247,7 +246,7 @@ def first_strike_damage(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def combat_damage(pdu: PDU) -> PDU:
+def combat_damage(pdu: PDU) -> PDU | None:
     """Combat Damage Step.
 
     Args:
@@ -259,7 +258,7 @@ def combat_damage(pdu: PDU) -> PDU:
     raise NotImplementedError
 
 
-def end_of_combat(pdu: PDU) -> PDU:
+def end_of_combat(pdu: PDU) -> PDU | None:
     """Combat End of Combat Step.
 
     Args:

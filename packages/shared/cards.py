@@ -9,6 +9,7 @@ from pydantic import PlainSerializer
 from packages.shared.game import ID
 
 
+# TODO Add Card data and inherit it for Creature, Artifact, etc.
 class Card(ABC):
     """Base card class."""
 

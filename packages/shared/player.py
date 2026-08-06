@@ -7,6 +7,7 @@ from pydantic import PlainSerializer
 from packages.shared.game import ID
 
 
+# TODO Add player data
 class Player(object):
     """Player class."""
 

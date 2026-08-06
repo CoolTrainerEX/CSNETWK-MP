@@ -3,7 +3,7 @@
 from enum import StrEnum, auto
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter
 
 from packages.shared.cards import Card, CardModel, CreatureCardModel, LandCardModel
 from packages.shared.game import ID, CombatStep, GamePhase, State
@@ -883,3 +883,5 @@ PDU = Annotated[
     | Pong,
     Field(discriminator="type"),
 ]
+
+PDUValidator = TypeAdapter(PDU)
