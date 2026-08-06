@@ -32,4 +32,4 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 html_theme = "alabaster"
 html_static_path = ["_static"]
 
-sys.path.insert(0, str(Path("..").resolve()))
+sys.path.insert(0, str(Path("../packages/").resolve()))

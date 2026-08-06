@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import PlainSerializer
 
-from game import ID
+from packages.shared.game import ID
 
 
 class Player(object):

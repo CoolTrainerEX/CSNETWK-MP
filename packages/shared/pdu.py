@@ -5,9 +5,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
-from cards import Card, CardModel, CreatureCardModel, LandCardModel
-from game import ID, State, GamePhase, CombatStep
-from player import PlayerModel
+from packages.shared.cards import Card, CardModel, CreatureCardModel, LandCardModel
+from packages.shared.game import ID, CombatStep, GamePhase, State
+from packages.shared.player import PlayerModel
 
 
 class Type(StrEnum):
@@ -102,6 +102,7 @@ class PlayerReady(BaseModel):
         deck_list (set[str]): 1 to 50 card IDs
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.PLAYER_READY]
     seq_num: int
     player_id: PlayerModel
@@ -129,6 +130,7 @@ class GameStateUpdate(BaseModel):
             waiting_for (set[PlayerModel]): :attr:`PlayerReady.player_id`s not yet ready
         """
 
+        model_config = {"arbitrary_types_allowed": True}
         phase: Literal[State.LOBBY]
         players_ready: int
         waiting_for: set[PlayerModel]
@@ -158,6 +160,7 @@ class GameStateUpdate(BaseModel):
                 tapped (bool):
             """
 
+            model_config = {"arbitrary_types_allowed": True}
             id: CardModel
             tapped: bool
 
@@ -194,12 +197,14 @@ class GameStateUpdate(BaseModel):
                 summoning_sick (bool):
             """
 
+            model_config = {"arbitrary_types_allowed": True}
             id: CreatureCardModel
             damage: int
             power: int
             toughness: int
             summoning_sick: bool
 
+        model_config = {"arbitrary_types_allowed": True}
         turn: int
         active_player: PlayerModel
         phase: Literal[State.MULLIGAN] | GamePhase | CombatStep
@@ -216,7 +221,7 @@ class GameStateUpdate(BaseModel):
 
     type: Literal[Type.GAME_STATE_UPDATE]
     seq_num: int
-    state: __LobbyState | __GameState = Field(discriminator="phase")
+    state: __LobbyState | __GameState
 
 
 class MulliganChoice(BaseModel):
@@ -232,6 +237,7 @@ class MulliganChoice(BaseModel):
         cards_to_bottom (set[CardModel]): Must equal mulligan count when :attr:`MulliganChoice.keep` = `True`
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.MULLIGAN_CHOICE]
     seq_num: int
     keep: bool
@@ -253,6 +259,7 @@ class PhaseTransition(BaseModel):
         turn (int):
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.PHASE_TRANSITION]
     seq_num: int
     from_phase: GamePhase | CombatStep
@@ -274,6 +281,7 @@ class PriorityGrant(BaseModel):
         time_limit_ms (int):
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.PRIORITY_GRANT]
     player_id: PlayerModel
     seq_num: int
@@ -309,6 +317,7 @@ class CastSpell(BaseModel):
         mana_payment (dict[Card.Color, int]):
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.CAST_SPELL]
     seq_num: int
     card_id: CardModel
@@ -343,6 +352,7 @@ class ActivateAbility(BaseModel):
         tap: bool
         mana: dict[Card.Color, int]
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.ACTIVATE_ABILITY]
     seq_num: int
     source_id: CardModel
@@ -372,6 +382,7 @@ class StackItem(BaseModel):
         ABILITY = auto()
         TRIGGER_ABILITY = auto()
 
+    model_config = {"arbitrary_types_allowed": True}
     stack_item_id: StackID
     item_type: ItemType
     source: CardModel
@@ -407,6 +418,7 @@ class TriggerOrder(BaseModel):
         trigger_ids (set[TriggerID]):
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.TRIGGER_ORDER]
     seq_num: int
     player_id: PlayerModel
@@ -446,6 +458,7 @@ class TriggerChoice(BaseModel):
         legal_targets (ID): Elements are `player_id` strings or permanent id
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.TRIGGER_CHOICE]
     seq_num: int
     trigger_id: TriggerID
@@ -540,6 +553,7 @@ class DeclareAttackers(BaseModel):
             target (PlayerModel):
         """
 
+        model_config = {"arbitrary_types_allowed": True}
         creature_id: CreatureCardModel
         target: PlayerModel
 
@@ -590,6 +604,7 @@ class DeclareBlockers(BaseModel):
             blocking_id (CreatureCardModel):
         """
 
+        model_config = {"arbitrary_types_allowed": True}
         creature_id: CreatureCardModel
         blocking_id: CreatureCardModel
 
@@ -633,6 +648,7 @@ class AssignDamageOrder(BaseModel):
         blocker_order (set[CreatureCardModel]):
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.ASSIGN_DAMAGE_ORDER]
     seq_num: int
     attacker_id: CreatureCardModel
@@ -662,10 +678,12 @@ class CombatDamageResult(BaseModel):
             amount (int):
         """
 
+        model_config = {"arbitrary_types_allowed": True}
         source: CreatureCardModel
         target: CreatureCardModel | PlayerModel
         amount: int
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.COMBAT_DAMAGE_RESULT]
     seq_num: int
     damage_events: set[__DamageEvent]
@@ -685,6 +703,7 @@ class PlayLand(BaseModel):
         card_id (LandCardModel):
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.PLAY_LAND]
     seq_num: int
     card_id: LandCardModel
@@ -702,6 +721,7 @@ class Discard(BaseModel):
         card_ids (set[CardModel]):
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.DISCARD]
     seq_num: int
     card_ids: set[CardModel]
@@ -719,6 +739,7 @@ class Concede(BaseModel):
         player_id (PlayerModel):
     """
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.CONCEDE]
     seq_num: int
     player_id: PlayerModel
@@ -743,6 +764,7 @@ class GameOver(BaseModel):
         CONCEDE = auto()
         DISCONNECT = auto()
 
+    model_config = {"arbitrary_types_allowed": True}
     type: Literal[Type.GAME_OVER]
     seq_num: int
     winner_id: PlayerModel
