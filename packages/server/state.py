@@ -1,13 +1,10 @@
 """Server state."""
 
-from packages.shared.game import CombatStep, GamePhase, State
+from packages.shared.game import CombatStep, Game, GamePhase, State
 from packages.shared.pdu import PDU
 from packages.shared.player import Player
 
-state = State.LOBBY
-game_phase = GamePhase.UNTAP
-combat_step = CombatStep.BEGIN_COMBAT
-players = []
+game = Game()
 
 
 def run(pdu: PDU) -> dict[Player, PDU]:
@@ -19,45 +16,41 @@ def run(pdu: PDU) -> dict[Player, PDU]:
     Returns:
         dict[Player, PDU]: PDUs to send
     """
-    match state:
+    match game.state:
         case State.LOBBY:
             return lobby(pdu)
         case State.GAME_SETUP:
             return game_setup(pdu)
         case State.MULLIGAN:
             return mulligan(pdu)
-        case State.IN_GAME:
-            match game_phase:
-                case GamePhase.UNTAP:
-                    return untap(pdu)
-                case GamePhase.UPKEEP:
-                    return upkeep(pdu)
-                case GamePhase.DRAW:
-                    return draw(pdu)
-                case GamePhase.PRECOMBAT_MAIN:
-                    return precombat_main(pdu)
-                case GamePhase.COMBAT:
-                    match combat_step:
-                        case CombatStep.BEGIN_COMBAT:
-                            return begin_combat(pdu)
-                        case CombatStep.DECLARE_ATTACKERS:
-                            return declare_attackers(pdu)
-                        case CombatStep.DECLARE_BLOCKERS:
-                            return declare_blockers(pdu)
-                        case CombatStep.ASSIGN_DAMAGE_ORDER:
-                            return assign_damage_order(pdu)
-                        case CombatStep.FIRST_STRIKE_DAMAGE:
-                            return first_strike_damage(pdu)
-                        case CombatStep.COMBAT_DAMAGE:
-                            return combat_damage(pdu)
-                        case CombatStep.END_OF_COMBAT:
-                            return end_of_combat(pdu)
-                case GamePhase.POSTCOMBAT_MAIN:
-                    return postcombat_main(pdu)
-                case GamePhase.END_STEP:
-                    return end_step(pdu)
-                case GamePhase.CLEANUP:
-                    return cleanup(pdu)
+        case GamePhase.UNTAP:
+            return untap(pdu)
+        case GamePhase.UPKEEP:
+            return upkeep(pdu)
+        case GamePhase.DRAW:
+            return draw(pdu)
+        case GamePhase.PRECOMBAT_MAIN:
+            return precombat_main(pdu)
+        case CombatStep.BEGIN_COMBAT:
+            return begin_combat(pdu)
+        case CombatStep.DECLARE_ATTACKERS:
+            return declare_attackers(pdu)
+        case CombatStep.DECLARE_BLOCKERS:
+            return declare_blockers(pdu)
+        case CombatStep.ASSIGN_DAMAGE_ORDER:
+            return assign_damage_order(pdu)
+        case CombatStep.FIRST_STRIKE_DAMAGE:
+            return first_strike_damage(pdu)
+        case CombatStep.COMBAT_DAMAGE:
+            return combat_damage(pdu)
+        case CombatStep.END_OF_COMBAT:
+            return end_of_combat(pdu)
+        case GamePhase.POSTCOMBAT_MAIN:
+            return postcombat_main(pdu)
+        case GamePhase.END_STEP:
+            return end_step(pdu)
+        case GamePhase.CLEANUP:
+            return cleanup(pdu)
         case State.GAME_OVER:
             return game_over(pdu)
 

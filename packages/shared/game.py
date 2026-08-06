@@ -63,3 +63,26 @@ class CombatStep(StrEnum):
 
     END_OF_COMBAT = auto()
     """Priority window; combat concludes"""
+
+
+class Game(object):
+    """Game instance."""
+
+    def __init__(self) -> None:
+        """Create a game instance."""
+        self.__state = State.LOBBY
+        self.__game_phase = GamePhase.UNTAP
+        self.__combat_step = CombatStep.BEGIN_COMBAT
+
+    @property
+    def state(self):
+        """Current game state.
+
+        Returns:
+            State | GamePhase | CombatStep: Current game state
+        """
+        if self.__state == State.IN_GAME:
+            if self.__game_phase == GamePhase.COMBAT:
+                return self.__combat_step
+            return self.__game_phase
+        return self.__state
