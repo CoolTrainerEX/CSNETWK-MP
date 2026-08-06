@@ -330,7 +330,7 @@ class ActivateAbility(BaseModel):
 
     Notes:
         Mana abilities bypass the stack entirely
-        Server rejects with :attr:`Error.ILLEGAL_ACTION` if permanent is already tapped
+        Server rejects with :attr:`Error.Code.ILLEGAL_ACTION` if permanent is already tapped
 
     Attributes:
         type (Literal[Type.ACTIVATE_ABILITY]):
@@ -636,7 +636,7 @@ class DeclareBlockers(BaseModel):
 
 
 class AssignDamageOrder(BaseModel):
-    """**Dir**:C -> S; **Phase**: Combat.
+    """**Dir**: C -> S; **Phase**: Combat.
 
     Notes:
         Required when multiple blockers on one attacker
@@ -822,7 +822,7 @@ class Error(BaseModel):
 
 
 class Ping(BaseModel):
-    """**Dir**:c C -> S; **Phase**: Any.
+    """**Dir**: C -> S; **Phase**: Any.
 
     Notes:
         Heartbeat — server responds with :class:`Pong`
