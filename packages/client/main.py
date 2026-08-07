@@ -1,9 +1,9 @@
 """Main client module."""
 
 from argparse import ArgumentParser
+import asyncio
 
 from packages.client.connection import connect
-from packages.client.state import run
 
 
 def main():
@@ -11,7 +11,7 @@ def main():
     parser = ArgumentParser(description="CSNETWK-MP Client")
 
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
-    connect(run, parser.parse_args().verbose)
+    asyncio.run(connect(parser.parse_args().verbose))
 
 
 if __name__ == "__main__":

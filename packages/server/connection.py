@@ -1,30 +1,73 @@
 """Server connection module."""
 
-from asyncio import Semaphore
-from collections.abc import Callable
-from socket import AF_INET, SOCK_STREAM, socket
-from threading import Thread
+from asyncio import (
+    IncompleteReadError,
+    Semaphore,
+    StreamReader,
+    StreamWriter,
+    start_server,
+    timeout,
+)
 
-from packages.shared.connection import HOST, PORT
-from packages.shared.pdu import PDU
-from packages.shared.player import Player
+from packages.server.state import disconnect, run
+from packages.shared.connection import HOST, PORT, read, write
+from packages.shared.pdu import PDU, Pong, Type
+from packages.shared.player import PlayerID
 
 semaphore = Semaphore(2)
+writers: dict[PlayerID, StreamWriter] = {}
+readers: dict[StreamReader, PlayerID] = {}
 
 
-def connect(run: Callable[[PDU], dict[Player, PDU]], verbose=False):
+async def connect(verbose=False):
     """TCP Connection.
 
     Args:
-        run (Callable[[PDU], dict[Player, PDU]]): Function to run when :class:`PDU` is received
         verbose (bool, optional): Verbose mode. Defaults to False.
     """
-    with socket(AF_INET, SOCK_STREAM) as server_socket:
-        server_socket.bind((HOST, PORT))
-        server_socket.listen()
-        print("Listening to", HOST, PORT)
 
-        while True:
-            with server_socket.accept()[0] as conn:
-                if not semaphore.locked():
-                    
+    async def handle(reader: StreamReader, writer: StreamWriter):
+        if not semaphore.locked():
+            async with semaphore:
+                try:
+                    time_limit = None
+
+                    while True:
+                        if time_limit:
+                            async with timeout(time_limit / 1000.0):
+                                req = await read(reader, verbose)
+                        else:
+                            req = await read(reader, verbose)
+
+                        if req.type == Type.PING:
+                            await write(
+                                Pong(seq_num=req.seq_num, timestamp=req.timestamp),
+                                writer,
+                                verbose,
+                            )
+                        else:
+                            if req.type == Type.PLAYER_READY:
+                                readers[reader] = req.player_id
+                                writers[req.player_id] = writer
+
+                            for player, payload in run(req, readers[reader]).items():
+                                for pdu in payload:
+                                    if pdu.type == Type.PRIORITY_GRANT:
+                                        time_limit = pdu.time_limit_ms
+
+                                    await write(pdu, writers[player], verbose)
+                except TimeoutError, IncompleteReadError, ConnectionResetError:
+                    if reader in readers:
+                        for player, payload in disconnect(readers[reader]).items():
+                            for pdu in payload:
+                                await write(pdu, writers[player], verbose)
+
+                        del writers[readers[reader]]
+                        del readers[reader]
+
+        writer.close()
+        await writer.wait_closed()
+
+    async with await start_server(handle, HOST, PORT) as server:
+        print("Listening to", HOST, PORT)
+        await server.serve_forever()

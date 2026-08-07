@@ -1,33 +1,29 @@
 """Client connection module."""
 
-from collections.abc import Callable
-from socket import AF_INET, SOCK_STREAM, socket
-from struct import pack
+from asyncio import open_connection
 
-from packages.shared.connection import HOST, PORT, send, recv
+from packages.client.state import run
+from packages.shared.connection import HOST, PORT, write, read
 from packages.shared.pdu import PDU, PlayerReady
 from packages.shared.player import Player
 
 
-def connect(run: Callable[[PDU], PDU | None], verbose=False):
+async def connect(verbose=False):
     """TCP Connection.
 
     Args:
-        run (Callable[[PDU], dict[Player, PDU]]): Function to run when :class:`PDU` is received
         verbose (bool, optional): Verbose mode. Defaults to False.
     """
-    with socket(AF_INET, SOCK_STREAM) as client_socket:
-        client_socket.connect((HOST, PORT))
-        print("Connected to", HOST, PORT)
+    reader, writer = await open_connection(HOST, PORT)
 
-        send(
-            PlayerReady(seq_num=1, player_id=Player("4"), deck_list=set([])),
-            client_socket,
-            verbose,
-        )
+    print("Connected to", HOST, PORT)
 
-        while True:
-            payload = run(recv(client_socket, verbose))
+    # await write(
+    #     PlayerReady(seq_num=1, player_id="4", deck_list=set({})),
+    #     writer,
+    #     verbose,
+    # )
 
-            if payload:
-                send(payload, client_socket, verbose)
+    while True:
+        for pdu in run(await read(reader, verbose)):
+            await write(pdu, writer, verbose)

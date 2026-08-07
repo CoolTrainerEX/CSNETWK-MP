@@ -6,7 +6,7 @@ from packages.shared.pdu import PDU
 game = Game()
 
 
-def run(pdu: PDU) -> PDU | None:
+def run(pdu: PDU) -> list[PDU]:
     """Run on receive.
 
     Args:
@@ -54,7 +54,7 @@ def run(pdu: PDU) -> PDU | None:
             return game_over(pdu)
 
 
-def lobby(pdu: PDU) -> PDU | None:
+def lobby(pdu: PDU) -> list[PDU]:
     """Lobby state.
 
     Args:
@@ -66,7 +66,7 @@ def lobby(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def game_setup(pdu: PDU) -> PDU | None:
+def game_setup(pdu: PDU) -> list[PDU]:
     """Game Setup state.
 
     Args:
@@ -78,7 +78,7 @@ def game_setup(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def mulligan(pdu: PDU) -> PDU | None:
+def mulligan(pdu: PDU) -> list[PDU]:
     """Mulligan state.
 
     Args:
@@ -90,7 +90,7 @@ def mulligan(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def game_over(pdu: PDU) -> PDU | None:
+def game_over(pdu: PDU) -> list[PDU]:
     """Game Over State.
 
     Args:
@@ -102,7 +102,7 @@ def game_over(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def untap(pdu: PDU) -> PDU | None:
+def untap(pdu: PDU) -> list[PDU]:
     """In-Game Untap Phase.
 
     Args:
@@ -114,7 +114,7 @@ def untap(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def upkeep(pdu: PDU) -> PDU | None:
+def upkeep(pdu: PDU) -> list[PDU]:
     """In-Game Upkeep Phase.
 
     Args:
@@ -126,7 +126,7 @@ def upkeep(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def draw(pdu: PDU) -> PDU | None:
+def draw(pdu: PDU) -> list[PDU]:
     """In-Game Draw Phase.
 
     Args:
@@ -138,7 +138,7 @@ def draw(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def precombat_main(pdu: PDU) -> PDU | None:
+def precombat_main(pdu: PDU) -> list[PDU]:
     """In-Game Precombat Main Phase.
 
     Args:
@@ -150,7 +150,7 @@ def precombat_main(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def postcombat_main(pdu: PDU) -> PDU | None:
+def postcombat_main(pdu: PDU) -> list[PDU]:
     """In-Game Postcombat Main Phase.
 
     Args:
@@ -162,7 +162,7 @@ def postcombat_main(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def end_step(pdu: PDU) -> PDU | None:
+def end_step(pdu: PDU) -> list[PDU]:
     """In-Game End Step Phase.
 
     Args:
@@ -174,7 +174,7 @@ def end_step(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def cleanup(pdu: PDU) -> PDU | None:
+def cleanup(pdu: PDU) -> list[PDU]:
     """In-Game Cleanup Phase.
 
     Args:
@@ -186,7 +186,7 @@ def cleanup(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def begin_combat(pdu: PDU) -> PDU | None:
+def begin_combat(pdu: PDU) -> list[PDU]:
     """Combat Begin Combat Step.
 
     Args:
@@ -198,7 +198,7 @@ def begin_combat(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def declare_attackers(pdu: PDU) -> PDU | None:
+def declare_attackers(pdu: PDU) -> list[PDU]:
     """Combat Declare Attackers Step.
 
     Args:
@@ -210,7 +210,7 @@ def declare_attackers(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def declare_blockers(pdu: PDU) -> PDU | None:
+def declare_blockers(pdu: PDU) -> list[PDU]:
     """Combat Declare Blockers Step.
 
     Args:
@@ -222,7 +222,7 @@ def declare_blockers(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def assign_damage_order(pdu: PDU) -> PDU | None:
+def assign_damage_order(pdu: PDU) -> list[PDU]:
     """Combat Assign Damage Order Step.
 
     Args:
@@ -234,7 +234,7 @@ def assign_damage_order(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def first_strike_damage(pdu: PDU) -> PDU | None:
+def first_strike_damage(pdu: PDU) -> list[PDU]:
     """Combat First Strike Damage Step.
 
     Args:
@@ -246,7 +246,7 @@ def first_strike_damage(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def combat_damage(pdu: PDU) -> PDU | None:
+def combat_damage(pdu: PDU) -> list[PDU]:
     """Combat Damage Step.
 
     Args:
@@ -258,7 +258,7 @@ def combat_damage(pdu: PDU) -> PDU | None:
     raise NotImplementedError
 
 
-def end_of_combat(pdu: PDU) -> PDU | None:
+def end_of_combat(pdu: PDU) -> list[PDU]:
     """Combat End of Combat Step.
 
     Args:

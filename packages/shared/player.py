@@ -60,4 +60,4 @@ def serialize_player(player: Player):
     return player.id
 
 
-PlayerModel = Annotated[Player, PlainSerializer(serialize_player)]
+PlayerID = ID

@@ -82,6 +82,6 @@ def serialize_card(card: Card):
     return card.id
 
 
-CardModel = Annotated[Card, PlainSerializer(serialize_card)]
-CreatureCardModel = CardModel
-LandCardModel = CardModel
+CardID = ID
+CreatureCardID = CardID
+LandCardID = CardID

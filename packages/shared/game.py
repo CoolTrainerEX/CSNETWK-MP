@@ -1,7 +1,6 @@
 """Game module."""
 
 from enum import StrEnum, auto
-from threading import Lock
 
 
 ID = str
@@ -71,19 +70,9 @@ class Game(object):
 
     def __init__(self) -> None:
         """Create a game instance."""
-        self.__mutex = Lock()
         self.__state = State.LOBBY
         self.__game_phase = GamePhase.UNTAP
         self.__combat_step = CombatStep.BEGIN_COMBAT
-
-    @property
-    def mutex(self):
-        """State mutex lock.
-
-        Returns:
-            lock: Mutex lock
-        """
-        return self.__mutex
 
     @property
     def state(self):
