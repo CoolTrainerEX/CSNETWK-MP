@@ -29,6 +29,7 @@ async def connect(verbose=False):
     async def handle(reader: StreamReader, writer: StreamWriter):
         if not semaphore.locked():
             async with semaphore:
+                print(writer.get_extra_info("peername"), "Connected")
                 try:
                     time_limit = None
 
@@ -64,7 +65,7 @@ async def connect(verbose=False):
 
                         del writers[readers[reader]]
                         del readers[reader]
-
+        print(writer.get_extra_info("peername"), "Disconnected")
         writer.close()
         await writer.wait_closed()
 
