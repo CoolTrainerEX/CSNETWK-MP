@@ -1,8 +1,79 @@
-"""Server state."""
+"""Client state."""
 
 from packages.client.input import Input
+from packages.shared.cards import Card
 from packages.shared.game import CombatStep, Game, GamePhase, State
 from packages.shared.pdu import PDU
+from packages.shared.player import Player, PlayerID
+
+
+class ClientPlayer(Player):
+    """Client player view."""
+
+    def __init__(self, id: PlayerID, library_count: int) -> None:
+        """Creates a client player.
+
+        Args:
+            id (PlayerID): Player ID
+            library_count (int): Library count
+        """
+        super().__init__(id)
+        self.__library_count = library_count
+
+    @property
+    def library_count(self):
+        """Player library count.
+
+        Returns:
+            int: Player library count
+        """
+        return self.__library_count
+
+
+class CurrentClientPlayer(ClientPlayer):
+    """Current player."""
+
+    def __init__(self, id: PlayerID, library_count: int) -> None:
+        """Creates the current player.
+
+        Args:
+            id (PlayerID): Player ID
+            library_count (int): Library count
+        """
+        super().__init__(id, library_count)
+        self.__hand: set[Card] = set()
+
+    @property
+    def hand(self):
+        """Player hand.
+
+        Returns:
+            set[Card]: Player hand.
+        """
+        return self.__hand
+
+
+class OpponentClientPlayer(ClientPlayer):
+    """Opponent player."""
+
+    def __init__(self, id: PlayerID, library_count: int) -> None:
+        """Creates the current player.
+
+        Args:
+            id (PlayerID): Player ID
+            library_count (int): Library count
+        """
+        super().__init__(id, library_count)
+        self.__hand_count = 0
+
+    @property
+    def hand_count(self):
+        """Player hand count.
+
+        Returns:
+            set[Card]: Player hand count.
+        """
+        return self.__hand_count
 
 
 class ClientGame(Game):

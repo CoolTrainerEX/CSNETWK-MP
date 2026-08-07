@@ -1,19 +1,26 @@
 """Player states."""
 
+from abc import ABC
+
+from packages.shared.cards import Card
 from packages.shared.game import ID
 
+PlayerID = ID
 
-# TODO Add player data
-class Player(object):
+
+class Player(ABC):
     """Player class."""
 
-    def __init__(self, id: ID) -> None:
+    def __init__(self, id: PlayerID) -> None:
         """Creates a player.
 
         Args:
             id (ID): Player ID
         """
         self.__id = id
+        self.__life_total = 20
+        self.__battlefield: set[Card] = set()
+        self.__graveyard: set[Card] = set()
 
     @property
     def id(self):
@@ -23,6 +30,33 @@ class Player(object):
             str: Player ID
         """
         return self.__id
+
+    @property
+    def life_total(self):
+        """Player life total.
+
+        Returns:
+            int: Player life total
+        """
+        return self.__life_total
+
+    @property
+    def battlefield(self):
+        """Player battlefield.
+
+        Returns:
+            _type_: Player battlefield
+        """
+        return self.__battlefield
+
+    @property
+    def graveyard(self):
+        """Plaayer graveyard.
+
+        Returns:
+            set[Card]: Player graveyard
+        """
+        return self.__graveyard
 
     def __eq__(self, value: object) -> bool:
         """Checks object equality.
@@ -42,18 +76,3 @@ class Player(object):
             int: Object hash
         """
         return hash(self.id)
-
-
-def serialize_player(player: Player):
-    """Serialize :class:`Player` for Pydantic.
-
-    Args:
-        player (Player): Player to serialize
-
-    Returns:
-        ID: Serialized player
-    """
-    return player.id
-
-
-PlayerID = ID

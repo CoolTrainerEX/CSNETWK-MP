@@ -6,7 +6,13 @@ from enum import StrEnum, auto
 from packages.shared.game import ID
 
 
-# TODO Add Card data and inherit it for Creature, Artifact, etc.
+CardID = ID
+CreatureCardID = CardID
+LandCardID = CardID
+
+# TODO Card cast and ability logic
+
+
 class Card(ABC):
     """Base card class."""
 
@@ -20,7 +26,7 @@ class Card(ABC):
         G = auto()
         C = "x"
 
-    def __init__(self, id: ID) -> None:
+    def __init__(self, id: CardID) -> None:
         """Creates a card instance.
 
         Args:
@@ -30,11 +36,41 @@ class Card(ABC):
 
     @staticmethod
     @abstractmethod
-    def valid_ids() -> set[str]:
+    def _ids() -> set[str]:
         """Valid card IDs.
 
         Returns:
             set[str]: Set of valid card IDs
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def name() -> str:
+        """Card name.
+
+        Returns:
+            str: Card name
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def color() -> Color:
+        """Card color.
+
+        Returns:
+            Color: Card color
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def cost() -> dict[Color, int]:
+        """Card cost.
+
+        Returns:
+            dict[Color, int]: Card cost
         """
         pass
 
@@ -67,18 +103,99 @@ class Card(ABC):
         return hash(self.id)
 
 
-def serialize_card(card: Card):
-    """Serialize :class:`Card` for Pydantic.
+class Subtype(ABC):
+    """Subtype interface."""
 
-    Args:
-        card (BaseCard): Card to serialize
+    @staticmethod
+    @abstractmethod
+    def subtype() -> str:
+        """Card subtype.
 
-    Returns:
-        ID: Serialized card
-    """
-    return card.id
+        Returns:
+            str: Card subtype
+        """
+        pass
 
 
-CardID = ID
-CreatureCardID = CardID
-LandCardID = CardID
+class Tap(ABC):
+    """Tap interface."""
+
+    @property
+    @abstractmethod
+    def tap(self) -> bool:
+        """Tapped.
+
+        Returns:
+            bool: Tapped
+        """
+        pass
+
+    @tap.setter
+    @abstractmethod
+    def tap(self, value: bool):
+        """Tap card.
+
+        Args:
+            value (bool): Tap or untap
+        """
+        pass
+
+
+class ArtifactCard(Card, Tap):
+    """Artifact Card."""
+
+    pass
+
+
+class CreatureCard(Card, Subtype, Tap):
+    """Creature Card."""
+
+    @staticmethod
+    @abstractmethod
+    def power() -> int:
+        """Creature power.
+
+        Returns:
+            int: Creature power
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def toughness() -> int:
+        """Creature toughness.
+
+        Returns:
+            int: Creature toughnesss
+        """
+        pass
+
+
+class ArtifactCreatureCard(ArtifactCard, CreatureCard):
+    """Artifact Creature Card."""
+
+    pass
+
+
+class EnchantmentCard(Card, Subtype):
+    """Enchantment Card."""
+
+    pass
+
+
+class InstantCard(Card):
+    """Instant Card."""
+
+    pass
+
+
+class LandCard(Card, Subtype, Tap):
+    """Land Card."""
+
+    pass
+
+
+class SorceryCard(Card):
+    """Sorcery Card."""
+
+    pass

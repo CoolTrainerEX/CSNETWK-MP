@@ -1,6 +1,9 @@
 """Game module."""
 
+from abc import ABC
 from enum import StrEnum, auto
+
+from packages.shared.player import Player
 
 
 ID = str
@@ -65,14 +68,21 @@ class CombatStep(StrEnum):
     """Priority window; combat concludes"""
 
 
-class Game(object):
-    """Game instance."""
+class Game(ABC):
+    """Game instance.
+    
+    Attributes:
+        _seq_num (int): Sequence number
+        _players list[Player]: List of players
+    """
 
     def __init__(self) -> None:
         """Create a game instance."""
         self.__state = State.LOBBY
         self.__game_phase = GamePhase.UNTAP
         self.__combat_step = CombatStep.BEGIN_COMBAT
+        self._seq_num = 0
+        self._players: list[Player] = []
 
     @property
     def state(self):
@@ -86,3 +96,23 @@ class Game(object):
                 return self.__combat_step
             return self.__game_phase
         return self.__state
+
+    @state.setter
+    def state(self, value: State | GamePhase | CombatStep):
+        """Set current game state.
+
+        Args:
+            value (State | GamePhase | CombatStep): Current game state.
+        """
+        if isinstance(value, CombatStep):
+            self.__combat_step = value
+            self.__game_phase = GamePhase.COMBAT
+            self.__state = State.IN_GAME
+        elif isinstance(value, GamePhase):
+            self.__combat_step = CombatStep.BEGIN_COMBAT
+            self.__game_phase = value
+            self.__state = State.IN_GAME
+        else:
+            self.__combat_step = CombatStep.BEGIN_COMBAT
+            self.__game_phase = GamePhase.UNTAP
+            self.__state = value

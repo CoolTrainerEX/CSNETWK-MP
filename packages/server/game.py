@@ -2,9 +2,43 @@
 
 from typing import Sequence
 
+from packages.shared.cards import Card
 from packages.shared.game import CombatStep, Game, GamePhase, State
 from packages.shared.pdu import PDU
-from packages.shared.player import PlayerID
+from packages.shared.player import Player, PlayerID
+
+
+class ServerPlayer(Player):
+    """Server player view."""
+
+    def __init__(self, id: PlayerID, deck: set[Card]) -> None:
+        """Creates a server player.
+
+        Args:
+            id (PlayerID): Player ID
+            deck (set[Card]): Player deck
+        """
+        super().__init__(id)
+        self.__library = deck
+        self.__hand: set[Card] = set()
+
+    @property
+    def library(self):
+        """Player library.
+
+        Returns:
+            set[Card]: Player library
+        """
+        return self.__library
+
+    @property
+    def hand(self):
+        """Player hand.
+
+        Returns:
+            set[Card]: Player hand
+        """
+        return self.__hand
 
 
 class ServerGame(Game):
