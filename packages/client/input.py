@@ -1,46 +1,67 @@
 """Async user input."""
 
-from asyncio import CancelledError, Queue, Task, create_task
+from asyncio import Event, Future, Queue, create_task, get_running_loop
+from collections.abc import Callable
+from typing import Any, Sequence
 
 from prompt_toolkit import PromptSession
+
+from packages.shared.pdu import PDU
 
 
 class Input(object):
     """Async input."""
 
     def __init__(self):
+        """Creates a new input session."""
         self.__session = PromptSession()
-        self.__queue: Queue[str] = Queue()
-        self.__prompt_task: Task | None = None
+        self.__event = Event()
 
-    def start_prompt(self, prompt_text: str = "<> "):
+    @property
+    def active(self):
+        """`True` if there is currently an active input.
+
+        Returns:
+            bool: Active input
+        """
+        try:
+            return bool(self.__task)
+        except AttributeError:
+            return False
+
+    def prompt(self, prompts: list[str], parse: Callable[[list[str]], Sequence[PDU]]):
         """Starts an async prompt task in the background.
 
         Args:
-            prompt_text (str, optional): Text to display. Defaults to "<> ".
+            prompts (str, optional): Text to display
+            parse (Callable[[str], PDU]): Parsing function to send PDU
         """
-        if self.__prompt_task and not self.__prompt_task.done():
-            return  # Already prompting
+        self.interrupt()
 
-        async def prompt_worker():
-            try:
-                # Prompt runs natively on the asyncio event loop
-                user_str = await self.__session.prompt_async(prompt_text)
-                await self.__queue.put(user_str)
-            except CancelledError, KeyboardInterrupt:
-                pass
+        self.__prompts = prompts
+        self.__parse = parse
+        self.__task = create_task(self.__prompt_worker())
 
-        self.__prompt_task = create_task(prompt_worker())
+    async def __prompt_worker(self):
+        result = []
+
+        for prompt in self.__prompts:
+            result.append(await self.__session.prompt_async(prompt))
+
+        self.__result = self.__parse(result)
 
     def interrupt(self):
         """Immediately cancels and erases the active prompt."""
-        if self.__prompt_task and not self.__prompt_task.done():
-            self.__prompt_task.cancel()
-            self.__prompt_task = None
+        try:
+            if self.__task and not self.__task.done():
+                self.__task.cancel()
+                self.__task = None
+        except AttributeError:
+            pass
 
     async def subscribe(self):
         """Yields user inputs as they are completed."""
         while True:
-            val = await self.__queue.get()
-            yield val
-            self.__queue.task_done()
+            await self.__event.wait()
+            yield self.__result
+            self.__event.clear()

@@ -1,14 +1,15 @@
 """Client connection module."""
 
-from asyncio import IncompleteReadError, TaskGroup, open_connection, sleep
+from asyncio import IncompleteReadError, TaskGroup, open_connection, sleep, wait_for
 from time import time
 
-from packages.client.state import ClientGame
+from packages.client.game import ClientGame
 from packages.shared.connection import HOST, PORT, write, read
 from packages.shared.pdu import Ping, Type
 
 PING_INTERVAL = 30
 PING_TIMEOUT = 10
+PROMPT_TIMEOUT = 5
 
 assert PING_INTERVAL > PING_TIMEOUT
 
@@ -29,21 +30,29 @@ class ClientConnection(object):
 
     async def connect(self):
         """Connect the client."""
-        self.__reader, self.__writer = await open_connection(HOST, PORT)
-
-        print("Connected to", HOST, PORT)
-
         try:
+            self.__reader, self.__writer = await open_connection(HOST, PORT)
+
+            print("Connected to", HOST, PORT)
+
             async with TaskGroup() as tg:
                 tg.create_task(self.__handle_write())
                 tg.create_task(self.__ping())
-                await tg.create_task(self.__handle_read())
-        except* IncompleteReadError:
+                tg.create_task(self.__handle_read())
+        except* (
+            IncompleteReadError,
+            ConnectionRefusedError,
+            ConnectionResetError,
+            BrokenPipeError,
+        ):
             # Disconnect
             pass
 
-        self.__writer.close()
-        await self.__writer.wait_closed()
+        try:
+            self.__writer.close()
+            await self.__writer.wait_closed()
+        except AttributeError:
+            pass
 
     async def __handle_read(self):
         while True:
@@ -55,7 +64,19 @@ class ClientConnection(object):
                 self.__game.run(res)
 
     async def __handle_write(self):
-        pass
+        while True:
+            try:
+                if self.__game.input.active:
+                    payload = await anext(self.__game.input.subscribe())
+                else:
+                    payload = await wait_for(
+                        anext(self.__game.input.subscribe()), PROMPT_TIMEOUT
+                    )
+
+                for pdu in payload:
+                    await write(pdu, self.__writer, self.__verbose)
+            except TimeoutError:
+                self.__game.concede_prompt()
 
     async def __ping(self):
         seq_num = 1

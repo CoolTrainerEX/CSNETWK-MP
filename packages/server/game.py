@@ -1,5 +1,7 @@
 """Server state."""
 
+from typing import Sequence
+
 from packages.shared.game import CombatStep, Game, GamePhase, State
 from packages.shared.pdu import PDU
 from packages.shared.player import PlayerID
@@ -8,7 +10,7 @@ from packages.shared.player import PlayerID
 class ServerGame(Game):
     """Server-side game."""
 
-    def run(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def run(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         """Run on receive.
 
         Args:
@@ -16,7 +18,7 @@ class ServerGame(Game):
             player (PlayerID): Player who sent
 
         Returns:
-            dict[PlayerID, list[PDU]]: PDUs to send
+            dict[PlayerID, Sequence[PDU]]: PDUs to send
         """
         match self.state:
             case State.LOBBY:
@@ -56,77 +58,85 @@ class ServerGame(Game):
             case State.GAME_OVER:
                 return self.__game_over(pdu, player)
 
-    def disconnect(self, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def disconnect(self, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         """Player disconnected.
 
         Args:
             player (PlayerID): PLayer who disconnected
 
         Returns:
-            dict[PlayerID, list[PDU]]: PDUs to send
+            dict[PlayerID, Sequence[PDU]]: PDUs to send
         """
         raise NotImplementedError
 
-    def __lobby(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __lobby(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __game_setup(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __game_setup(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __mulligan(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __mulligan(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __game_over(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __game_over(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __untap(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __untap(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __upkeep(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __upkeep(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __draw(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __draw(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __precombat_main(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __precombat_main(
+        self, pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
     def __postcombat_main(
         self, pdu: PDU, player: PlayerID
-    ) -> dict[PlayerID, list[PDU]]:
+    ) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __end_step(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __end_step(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __cleanup(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __cleanup(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __begin_combat(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __begin_combat(
+        self, pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
     def __declare_attackers(
         self, pdu: PDU, player: PlayerID
-    ) -> dict[PlayerID, list[PDU]]:
+    ) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
     def __declare_blockers(
         self, pdu: PDU, player: PlayerID
-    ) -> dict[PlayerID, list[PDU]]:
+    ) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
     def __assign_damage_order(
         self, pdu: PDU, player: PlayerID
-    ) -> dict[PlayerID, list[PDU]]:
+    ) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
     def __first_strike_damage(
         self, pdu: PDU, player: PlayerID
-    ) -> dict[PlayerID, list[PDU]]:
+    ) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __combat_damage(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __combat_damage(
+        self, pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError
 
-    def __end_of_combat(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def __end_of_combat(
+        self, pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, Sequence[PDU]]:
         raise NotImplementedError

@@ -5,6 +5,6 @@ server
    :maxdepth: 4
 
    connection
+   game
    main
-   state
    states/modules

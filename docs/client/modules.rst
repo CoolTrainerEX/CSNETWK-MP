@@ -5,7 +5,7 @@ client
    :maxdepth: 4
 
    connection
+   game
    input
    main
-   state
    states/modules

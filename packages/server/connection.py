@@ -9,7 +9,7 @@ from asyncio import (
     timeout,
 )
 
-from packages.server.state import ServerGame
+from packages.server.game import ServerGame
 from packages.shared.connection import HOST, PORT, read, write
 from packages.shared.pdu import Pong, Type
 from packages.shared.player import PlayerID

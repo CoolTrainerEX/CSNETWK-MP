@@ -1,11 +1,22 @@
 """Server state."""
 
+from packages.client.input import Input
 from packages.shared.game import CombatStep, Game, GamePhase, State
 from packages.shared.pdu import PDU
 
 
 class ClientGame(Game):
     """Client-side game."""
+
+    def __init__(self) -> None:
+        """Creates a client game instance."""
+        self.__input = Input()
+        super().__init__()
+
+    @property
+    def input(self):
+        """Get game input."""
+        return self.__input
 
     def run(self, pdu: PDU):
         """Run on receive.
@@ -53,6 +64,13 @@ class ClientGame(Game):
                 return self.__cleanup(pdu)
             case State.GAME_OVER:
                 return self.__game_over(pdu)
+
+    def concede_prompt(self):
+        """Displays a prompt to concede.
+
+        Called in the client connection if no inputs for a set time (player is not active).
+        """
+        raise NotImplementedError
 
     def __lobby(self, pdu: PDU):
         raise NotImplementedError
