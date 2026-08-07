@@ -117,37 +117,36 @@ class Subtype(ABC):
         pass
 
 
-class Tap(ABC):
-    """Tap interface."""
+class TapCard(Card):
+    """Card that can tap."""
+
+    def __init__(self, id: ID) -> None:
+        """Creates a tap card instance.
+
+        Args:
+            id (ID): Card ID
+        """
+        super().__init__(id)
+        self._tapped = False
 
     @property
     @abstractmethod
-    def tap(self) -> bool:
+    def tapped(self) -> bool:
         """Tapped.
 
         Returns:
             bool: Tapped
         """
-        pass
-
-    @tap.setter
-    @abstractmethod
-    def tap(self, value: bool):
-        """Tap card.
-
-        Args:
-            value (bool): Tap or untap
-        """
-        pass
+        return self._tapped
 
 
-class ArtifactCard(Card, Tap):
+class ArtifactCard(TapCard):
     """Artifact Card."""
 
     pass
 
 
-class CreatureCard(Card, Subtype, Tap):
+class CreatureCard(TapCard, Subtype):
     """Creature Card."""
 
     @staticmethod
@@ -189,7 +188,7 @@ class InstantCard(Card):
     pass
 
 
-class LandCard(Card, Subtype, Tap):
+class LandCard(TapCard, Subtype):
     """Land Card."""
 
     pass
