@@ -3,7 +3,7 @@
 from asyncio import IncompleteReadError, TaskGroup, open_connection, sleep
 from time import time
 
-from packages.client.state import run
+from packages.client.state import ClientGame
 from packages.shared.connection import HOST, PORT, write, read
 from packages.shared.pdu import Ping, Type
 
@@ -13,54 +13,64 @@ PING_TIMEOUT = 10
 assert PING_INTERVAL > PING_TIMEOUT
 
 
-async def connect(verbose=False):
-    """TCP Connection.
+class ClientConnection(object):
+    """Client TCP Connection."""
 
-    Args:
-        verbose (bool, optional): Verbose mode. Defaults to False.
-    """
-    reader, writer = await open_connection(HOST, PORT)
+    def __init__(self, game: ClientGame, verbose=False):
+        """TCP Connection.
 
-    print("Connected to", HOST, PORT)
+        Args:
+            game (ClientGame): Game to run
+            verbose (bool, optional): Verbose mode. Defaults to False.
+        """
+        self.__game = game
+        self.__verbose = verbose
+        self.__pong = False
 
-    pong = False
+    async def connect(self):
+        """Connect the client."""
+        self.__reader, self.__writer = await open_connection(HOST, PORT)
 
-    async def handle():
-        nonlocal pong
+        print("Connected to", HOST, PORT)
 
+        try:
+            async with TaskGroup() as tg:
+                tg.create_task(self.__handle_write())
+                tg.create_task(self.__ping())
+                await tg.create_task(self.__handle_read())
+        except* IncompleteReadError:
+            # Disconnect
+            pass
+
+        self.__writer.close()
+        await self.__writer.wait_closed()
+
+    async def __handle_read(self):
         while True:
-            res = await read(reader, verbose)
+            res = await read(self.__reader, self.__verbose)
 
             if res.type == Type.PONG:
-                pong = True
+                self.__pong = True
             else:
-                for pdu in run(res):
-                    await write(pdu, writer, verbose)
+                self.__game.run(res)
 
-    async def ping():
-        nonlocal pong
+    async def __handle_write(self):
+        pass
+
+    async def __ping(self):
         seq_num = 1
 
         while True:
-            pong = False
-            await write(Ping(seq_num=seq_num, timestamp=time()), writer, verbose)
+            self.__pong = False
+            await write(
+                Ping(seq_num=seq_num, timestamp=time()), self.__writer, self.__verbose
+            )
             seq_num += 1
             await sleep(PING_TIMEOUT)
 
-            if not pong:
+            if not self.__pong:
                 print("Timeout")
-                writer.close()
+                self.__writer.close()
                 break
 
             await sleep(PING_INTERVAL - PING_TIMEOUT)
-
-    try:
-        async with TaskGroup() as tg:
-            tg.create_task(ping())
-            await tg.create_task(handle())
-    except* IncompleteReadError:
-        # Disconnect
-        pass
-
-    writer.close()
-    await writer.wait_closed()

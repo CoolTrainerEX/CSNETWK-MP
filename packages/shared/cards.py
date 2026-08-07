@@ -2,9 +2,6 @@
 
 from abc import ABC, abstractmethod
 from enum import StrEnum, auto
-from typing import Annotated
-
-from pydantic import PlainSerializer
 
 from packages.shared.game import ID
 

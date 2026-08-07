@@ -1,9 +1,5 @@
 """Player states."""
 
-from typing import Annotated
-
-from pydantic import PlainSerializer
-
 from packages.shared.game import ID
 
 

@@ -3,7 +3,8 @@
 from argparse import ArgumentParser
 import asyncio
 
-from packages.server.connection import connect
+from packages.server.connection import ServerConnection
+from packages.server.state import ServerGame
 
 
 def main():
@@ -11,7 +12,7 @@ def main():
     parser = ArgumentParser(description="CSNETWK-MP Client")
 
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
-    asyncio.run(connect(parser.parse_args().verbose))
+    asyncio.run(ServerConnection(ServerGame(), parser.parse_args().verbose).run())
 
 
 if __name__ == "__main__":
