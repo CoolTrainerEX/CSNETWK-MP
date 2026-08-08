@@ -55,6 +55,8 @@ class ClientConnection(object):
             pass
 
     async def __handle_read(self):
+        self.__game.ready()
+
         while True:
             res = await read(self.__reader, self.__verbose)
 

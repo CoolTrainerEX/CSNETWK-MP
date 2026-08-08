@@ -51,7 +51,7 @@ uv run client --verbose
 
 ## AI Usage
 
-TODO
+NotebookLM was used to understand the game rules and flow.
 
 ## Limitations and Deviations
 

@@ -124,6 +124,10 @@ class ClientGame(Game):
             case State.GAME_OVER:
                 return self.__game_over(pdu)
 
+    def ready(self):
+        """Initial player ready prompt."""
+        raise NotImplementedError
+
     def __lobby(self, pdu: PDU):
         raise NotImplementedError
 
