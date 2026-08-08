@@ -35,6 +35,21 @@ class Card(ABC):
         G = auto()
         C = "x"
 
+        @staticmethod
+        def format_colorless(num: int):
+            """Format a number for colorless.
+
+            Args:
+                num (int): Colorless number
+
+            Returns:
+                str: Formatted string
+            """
+            with console.capture() as capture:
+                console.print(f"[bold grey30 on grey70] {num} [/]")
+
+            return capture.get()
+
         def __format__(self, format_spec: str) -> str:
             """Format object.
 
@@ -198,6 +213,20 @@ class Subtype(ABC):
         pass
 
 
+class Kicker(ABC):
+    """Kicker interface."""
+
+    @staticmethod
+    @abstractmethod
+    def kicker_details() -> Card.AbilityDetails:
+        """Kicker details.
+
+        Returns:
+            Card.AbilityDetails: Kicker details
+        """
+        pass
+
+
 class BattlefieldCard(Card):
     """Card that are placed on the battlefield."""
 
@@ -230,12 +259,25 @@ class BattlefieldCard(Card):
         return self._tapped
 
     @staticmethod
-    @abstractmethod
     def abilities_details() -> set[BattlefieldAbilityDetails]:
         """Card abilities details.
 
         Returns:
             set[Card.AbilityDetails]: List of abilities details
+        """
+        return set()
+
+
+class Trigger(ABC):
+    """Trigger interface."""
+
+    @staticmethod
+    @abstractmethod
+    def trigger_details() -> str:
+        """Trigger details.
+
+        Returns:
+            str: Trigger description
         """
         pass
 
@@ -246,7 +288,7 @@ class ArtifactCard(BattlefieldCard):
     pass
 
 
-class CreatureCard(BattlefieldCard, Subtype):
+class CreatureCard(Subtype, BattlefieldCard):
     """Creature Card."""
 
     class Modifier(StrEnum):
@@ -286,14 +328,13 @@ class CreatureCard(BattlefieldCard, Subtype):
         pass
 
     @staticmethod
-    @abstractmethod
     def base_modifiers() -> set[Modifier]:
         """Creature base modifiers.
 
         Returns:
             set[str]: List of modifiers
         """
-        pass
+        return set()
 
     def modifiers(self) -> set[Modifier]:
         """Creature current modifiers.
@@ -313,27 +354,13 @@ class CreatureCard(BattlefieldCard, Subtype):
         return self._summoning_sick
 
 
-class TriggerCreatureCard(CreatureCard):
-    """Creature with trigger."""
-
-    @staticmethod
-    @abstractmethod
-    def trigger_details() -> str:
-        """Trigger details.
-
-        Returns:
-            str: Trigger description
-        """
-        pass
-
-
 class ArtifactCreatureCard(ArtifactCard, CreatureCard):
     """Artifact Creature Card."""
 
     pass
 
 
-class EnchantmentCard(Card, Subtype):
+class EnchantmentCard(Subtype, Card):
     """Enchantment Card."""
 
     pass
@@ -345,7 +372,7 @@ class InstantCard(Card):
     pass
 
 
-class LandCard(BattlefieldCard, Subtype):
+class LandCard(Subtype, BattlefieldCard):
     """Land Card."""
 
     pass
@@ -384,7 +411,7 @@ class Mountain(LandCard):  # noqa: D101
     def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
         return {
             BattlefieldCard.BattlefieldAbilityDetails(
-                text=f"Add {Card.Color.G}", tap_cost=True
+                text=f"Add {Card.Color.R}.", tap_cost=True
             )
         }
 
@@ -412,6 +439,14 @@ class Forest(LandCard):
     def subtype() -> str:  # noqa: D102
         return "Basic Forest"
 
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text=f"Add {Card.Color.G}.", tap_cost=True
+            )
+        }
+
 
 class Plains(LandCard):
     """Plains."""
@@ -435,6 +470,14 @@ class Plains(LandCard):
     @staticmethod
     def subtype() -> str:  # noqa: D102
         return "Basic Plains"
+
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text=f"Add {Card.Color.W}.", tap_cost=True
+            )
+        }
 
 
 class Island(LandCard):
@@ -460,6 +503,14 @@ class Island(LandCard):
     def subtype() -> str:  # noqa: D102
         return "Basic Island"
 
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text=f"Add {Card.Color.U}.", tap_cost=True
+            )
+        }
+
 
 class Swamp(LandCard):
     """Swamp."""
@@ -484,6 +535,14 @@ class Swamp(LandCard):
     def subtype() -> str:  # noqa: D102
         return "Basic Swamp"
 
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text=f"Add {Card.Color.B}.", tap_cost=True
+            )
+        }
+
 
 class LightningBolt(InstantCard):
     """Lightning Bolt."""
@@ -502,7 +561,9 @@ class LightningBolt(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.R: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.R: 1}, "Lightning Bolt deals 3 damage to any target."
+        )
 
 
 class Shock(InstantCard):
@@ -522,7 +583,9 @@ class Shock(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.R: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.R: 1}, "Shock deals 2 damage to any target."
+        )
 
 
 class LavaSpike(SorceryCard):
@@ -542,7 +605,9 @@ class LavaSpike(SorceryCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.R: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.R: 1}, "Lava Spike deals 3 damage to target player."
+        )
 
 
 class FlameSlash(SorceryCard):
@@ -562,7 +627,9 @@ class FlameSlash(SorceryCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.R: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.R: 1}, "Flame Slash deals 4 damage to target creature."
+        )
 
 
 class SearingSpear(InstantCard):
@@ -582,7 +649,10 @@ class SearingSpear(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.R: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.R: 1, Card.Color.C: 1},
+            "Searing Spear deals 3 damage to any target.",
+        )
 
 
 class Skullcrack(InstantCard):
@@ -602,7 +672,10 @@ class Skullcrack(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.R: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.R: 1, Card.Color.C: 1},
+            "Players can't gain life this turn. Damage can't be prevented this turn. Skullcrack deals 3 damage to any target.",
+        )
 
 
 class RiftBolt(SorceryCard):
@@ -622,7 +695,10 @@ class RiftBolt(SorceryCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.R: 1, Card.Color.C: 2}, "")
+        return Card.AbilityDetails(
+            {Card.Color.R: 1, Card.Color.C: 2},
+            f"Rift Bolt deals 3 damage to any target. Suspend 1—{Card.Color.R}.",
+        )
 
 
 class Incinerate(InstantCard):
@@ -642,10 +718,13 @@ class Incinerate(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.R: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.R: 1, Card.Color.C: 1},
+            "Incinerate deals 3 damage to any target. The damaged permanent or player can't be regenerated this turn.",
+        )
 
 
-class GoblinGuide(TriggerCreatureCard):
+class GoblinGuide(Trigger, CreatureCard):
     """Goblin Guide."""
 
     @staticmethod
@@ -685,7 +764,7 @@ class GoblinGuide(TriggerCreatureCard):
         return "Whenever Goblin Guide attacks, defending player reveals top card of library. If it's a land, that player puts it into their hand."
 
 
-class GoblinBushwhacker(CreatureCard):
+class GoblinBushwhacker(Kicker, CreatureCard):
     """Goblin Bushwhacker."""
 
     @staticmethod
@@ -715,6 +794,13 @@ class GoblinBushwhacker(CreatureCard):
     @staticmethod
     def toughness() -> int:  # noqa: D102
         return 1
+
+    @staticmethod
+    def kicker_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails(
+            {Card.Color.C: 1, Card.Color.R: 1},
+            "When this enters, if it was kicked, creatures you control get +1/+0 and gain haste until end of turn.",
+        )
 
 
 class RecklessWurm(CreatureCard):
@@ -748,8 +834,20 @@ class RecklessWurm(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 4
 
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.TRAMPLE}
 
-class MonasterySwiftspear(CreatureCard):
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                {Card.Color.C: 2, Card.Color.R: 1}, "Madness."
+            )
+        }
+
+
+class MonasterySwiftspear(Trigger, CreatureCard):
     """Monastery Swiftspear."""
 
     @staticmethod
@@ -780,6 +878,14 @@ class MonasterySwiftspear(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 2
 
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.HASTE}
+
+    @staticmethod
+    def trigger_details() -> str:  # noqa: D102
+        return "Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn)."
+
 
 class Counterspell(InstantCard):
     """Counterspell."""
@@ -798,7 +904,7 @@ class Counterspell(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.U: 2}, "")
+        return Card.AbilityDetails({Card.Color.U: 2}, "Counter target spell.")
 
 
 class Cancel(InstantCard):
@@ -818,7 +924,9 @@ class Cancel(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.U: 2, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.U: 2, Card.Color.C: 1}, "Counter target spell."
+        )
 
 
 class Unsummon(InstantCard):
@@ -838,7 +946,9 @@ class Unsummon(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.U: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.U: 1}, "Return target creature to its owner's hand."
+        )
 
 
 class Ponder(SorceryCard):
@@ -858,7 +968,10 @@ class Ponder(SorceryCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.U: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.U: 1},
+            "Look at top 3 cards of your library, then put them back in any order. You may shuffle. Draw a card.",
+        )
 
 
 class Negate(InstantCard):
@@ -878,7 +991,9 @@ class Negate(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.U: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.U: 1, Card.Color.C: 1}, "Counter target noncreature spell."
+        )
 
 
 class ManaLeak(InstantCard):
@@ -898,7 +1013,10 @@ class ManaLeak(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.U: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.U: 1, Card.Color.C: 1},
+            f"Counter target spell unless its controller pays {Card.Color.format_colorless(3)}.",
+        )
 
 
 class MerfolkLooter(CreatureCard):
@@ -932,6 +1050,14 @@ class MerfolkLooter(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 1
 
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text="Draw a card, then discard a card.", tap_cost=True
+            )
+        }
+
 
 class ProdigalSorcerer(CreatureCard):
     """Prodigal Sorcerer."""
@@ -963,6 +1089,14 @@ class ProdigalSorcerer(CreatureCard):
     @staticmethod
     def toughness() -> int:  # noqa: D102
         return 1
+
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text="Prodigal Sorcerer deals 1 damage to any target.", tap_cost=True
+            )
+        }
 
 
 class AirElemental(CreatureCard):
@@ -996,8 +1130,12 @@ class AirElemental(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 4
 
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.FLYING}
 
-class PhantasmalBear(CreatureCard):
+
+class PhantasmalBear(Trigger, CreatureCard):
     """Phantasmal Bear."""
 
     @staticmethod
@@ -1028,6 +1166,10 @@ class PhantasmalBear(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 2
 
+    @staticmethod
+    def trigger_details() -> str:  # noqa: D102
+        return "Illusion. When Phantasmal Bear becomes the target of a spell or ability, sacrifice it."
+
 
 class GiantGrowth(InstantCard):
     """Giant Growth."""
@@ -1046,7 +1188,9 @@ class GiantGrowth(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.G: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.G: 1}, "Target creature gets +3/+3 until end of turn."
+        )
 
 
 class RampantGrowth(SorceryCard):
@@ -1066,7 +1210,10 @@ class RampantGrowth(SorceryCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.G: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.G: 1, Card.Color.C: 1},
+            "Search your library for a basic land, put it onto the battlefield tapped, then shuffle.",
+        )
 
 
 class Naturalize(InstantCard):
@@ -1086,10 +1233,13 @@ class Naturalize(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.G: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.G: 1, Card.Color.C: 1},
+            "Destroy target artifact or enchantment.",
+        )
 
 
-class VinesOfVastwood(InstantCard):
+class VinesOfVastwood(Kicker, InstantCard):
     """Vines of Vastwood."""
 
     @staticmethod
@@ -1107,6 +1257,13 @@ class VinesOfVastwood(InstantCard):
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
         return Card.AbilityDetails({Card.Color.G: 1}, "")
+
+    @staticmethod
+    def kicker_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails(
+            {Card.Color.G: 1},
+            "Target creature can't be the target of spells or abilities your opponents control this turn. If this spell was kicked, that creature gets +4/+4 until end of turn.",
+        )
 
 
 class LlanowarElves(CreatureCard):
@@ -1140,6 +1297,14 @@ class LlanowarElves(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 1
 
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text=f"Add {Card.Color.G}.", tap_cost=True
+            )
+        }
+
 
 class ElvishMystic(CreatureCard):
     """Elvish Mystic."""
@@ -1171,6 +1336,14 @@ class ElvishMystic(CreatureCard):
     @staticmethod
     def toughness() -> int:  # noqa: D102
         return 1
+
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text=f"Add {Card.Color.G}.", tap_cost=True
+            )
+        }
 
 
 class GrizzlyBears(CreatureCard):
@@ -1268,6 +1441,18 @@ class TrollAscetic(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 2
 
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.HEXPROOF}
+
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                {Card.Color.C: 1, Card.Color.G: 1}, "Regenerate Troll Ascetic."
+            )
+        }
+
 
 class WallOfStone(CreatureCard):
     """Wall of Stone."""
@@ -1300,6 +1485,10 @@ class WallOfStone(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 8
 
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.DEFENDER}
+
 
 class SwordsToPlowshares(InstantCard):
     """Swords to Plowshares."""
@@ -1318,7 +1507,10 @@ class SwordsToPlowshares(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.W: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.W: 1},
+            "Exile target creature. Its controller gains life equal to its power.",
+        )
 
 
 class PathToExile(InstantCard):
@@ -1338,7 +1530,10 @@ class PathToExile(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.W: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.W: 1},
+            "Exile target creature. Its controller may search for a basic land, put it onto the battlefield tapped, then shuffle.",
+        )
 
 
 class HealingSalve(InstantCard):
@@ -1358,7 +1553,10 @@ class HealingSalve(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.W: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.W: 1},
+            "Choose one: Target player gains 3 life; or prevent the next 3 damage dealt to any target this turn.",
+        )
 
 
 class Pacifism(EnchantmentCard):
@@ -1378,14 +1576,17 @@ class Pacifism(EnchantmentCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.W: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.W: 1, Card.Color.C: 1},
+            "Enchant creature. Enchanted creature can't attack or block.",
+        )
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
         return "Aura"
 
 
-class WhiteKnight(CreatureCard):
+class WhiteKnight(Trigger, CreatureCard):
     """White Knight."""
 
     @staticmethod
@@ -1415,6 +1616,14 @@ class WhiteKnight(CreatureCard):
     @staticmethod
     def toughness() -> int:  # noqa: D102
         return 2
+
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.FIRST_STRIKE}
+
+    @staticmethod
+    def trigger_details() -> str:  # noqa: D102
+        return "Protection from black."
 
 
 class SerraAngel(CreatureCard):
@@ -1447,6 +1656,10 @@ class SerraAngel(CreatureCard):
     @staticmethod
     def toughness() -> int:  # noqa: D102
         return 4
+
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.FLYING, CreatureCard.Modifier.VIGILANCE}
 
 
 class SavannahLions(CreatureCard):
@@ -1512,6 +1725,15 @@ class MotherOfRunes(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 1
 
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text="Target creature you control gains protection from the color of your choice until end of turn.",
+                tap_cost=True,
+            )
+        }
+
 
 class DarkRitual(InstantCard):
     """Dark Ritual."""
@@ -1530,7 +1752,9 @@ class DarkRitual(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.B: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.B: 1}, f"Add {Card.Color.B} {Card.Color.B} {Card.Color.B}."
+        )
 
 
 class Terror(InstantCard):
@@ -1550,7 +1774,10 @@ class Terror(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.B: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.B: 1, Card.Color.C: 1},
+            "Destroy target nonartifact, nonblack creature. It can't be regenerated.",
+        )
 
 
 class DoomBlade(InstantCard):
@@ -1570,7 +1797,9 @@ class DoomBlade(InstantCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.B: 1, Card.Color.C: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.B: 1, Card.Color.C: 1}, "Destroy target nonblack creature."
+        )
 
 
 class RaiseDead(SorceryCard):
@@ -1590,7 +1819,10 @@ class RaiseDead(SorceryCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.B: 1}, "")
+        return Card.AbilityDetails(
+            {Card.Color.B: 1},
+            "Return target creature card from your graveyard to your hand.",
+        )
 
 
 class MindRot(SorceryCard):
@@ -1610,10 +1842,12 @@ class MindRot(SorceryCard):
 
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
-        return Card.AbilityDetails({Card.Color.B: 1, Card.Color.C: 2}, "")
+        return Card.AbilityDetails(
+            {Card.Color.B: 1, Card.Color.C: 2}, "Target player discards two cards."
+        )
 
 
-class GrayMerchantOfAsphodel(CreatureCard):
+class GrayMerchantOfAsphodel(Trigger, CreatureCard):
     """Gray Merchant of Asphodel."""
 
     @staticmethod
@@ -1644,8 +1878,12 @@ class GrayMerchantOfAsphodel(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 4
 
+    @staticmethod
+    def trigger_details() -> str:  # noqa: D102
+        return "When Gray Merchant enters, each opponent loses X life (X = your devotion to black). You gain that much life."
 
-class Gravedigger(CreatureCard):
+
+class Gravedigger(Trigger, CreatureCard):
     """Gravedigger."""
 
     @staticmethod
@@ -1675,6 +1913,10 @@ class Gravedigger(CreatureCard):
     @staticmethod
     def toughness() -> int:  # noqa: D102
         return 2
+
+    @staticmethod
+    def trigger_details() -> str:  # noqa: D102
+        return "When Gravedigger enters, return target creature card from your graveyard to your hand."
 
 
 class RoyalAssassin(CreatureCard):
@@ -1708,8 +1950,16 @@ class RoyalAssassin(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 1
 
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text="Destroy target tapped creature.", tap_cost=True
+            )
+        }
 
-class BlackKnight(CreatureCard):
+
+class BlackKnight(Trigger, CreatureCard):
     """Black Knight."""
 
     @staticmethod
@@ -1740,6 +1990,14 @@ class BlackKnight(CreatureCard):
     def toughness() -> int:  # noqa: D102
         return 2
 
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.FIRST_STRIKE}
+
+    @staticmethod
+    def trigger_details() -> str:  # noqa: D102
+        return "Protection from white."
+
 
 class SolRing(ArtifactCard):
     """Sol Ring."""
@@ -1759,6 +2017,14 @@ class SolRing(ArtifactCard):
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
         return Card.AbilityDetails({Card.Color.C: 1}, "")
+
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text=f"Tap: Add {Card.Color.C} {Card.Color.C}.", tap_cost=True
+            )
+        }
 
 
 class Ornithopter(ArtifactCreatureCard):
@@ -1792,6 +2058,10 @@ class Ornithopter(ArtifactCreatureCard):
     def toughness() -> int:  # noqa: D102
         return 2
 
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.FLYING}
+
 
 class Millstone(ArtifactCard):
     """Millstone."""
@@ -1812,6 +2082,16 @@ class Millstone(ArtifactCard):
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
         return Card.AbilityDetails({Card.Color.C: 2}, "")
 
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                {Card.Color.C: 2},
+                "Target player mills 2 cards (puts top 2 cards of their library into their graveyard).",
+                True,
+            )
+        }
+
 
 class RodOfRuin(ArtifactCard):
     """Rod of Ruin."""
@@ -1831,3 +2111,11 @@ class RodOfRuin(ArtifactCard):
     @staticmethod
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
         return Card.AbilityDetails({Card.Color.C: 4}, "")
+
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                {Card.Color.C: 3}, "Rod of Ruin deals 1 damage to any target.", True
+            )
+        }
