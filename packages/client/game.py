@@ -124,13 +124,6 @@ class ClientGame(Game):
             case State.GAME_OVER:
                 return self.__game_over(pdu)
 
-    def concede_prompt(self):
-        """Displays a prompt to concede.
-
-        Called in the client connection if no inputs for a set time (player is not active).
-        """
-        raise NotImplementedError
-
     def __lobby(self, pdu: PDU):
         raise NotImplementedError
 

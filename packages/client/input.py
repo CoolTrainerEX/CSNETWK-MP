@@ -17,18 +17,6 @@ class Input(object):
         self.__session = PromptSession()
         self.__event = Event()
 
-    @property
-    def active(self):
-        """`True` if there is currently an active input.
-
-        Returns:
-            bool: Active input
-        """
-        try:
-            return bool(self.__task)
-        except AttributeError:
-            return False
-
     def prompt(self, prompts: list[str], parse: Callable[[list[str]], Sequence[PDU]]):
         """Starts an async prompt task in the background.
 

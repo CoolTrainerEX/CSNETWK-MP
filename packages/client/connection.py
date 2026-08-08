@@ -65,18 +65,9 @@ class ClientConnection(object):
 
     async def __handle_write(self):
         while True:
-            try:
-                if self.__game.input.active:
-                    payload = await anext(self.__game.input.subscribe())
-                else:
-                    payload = await wait_for(
-                        anext(self.__game.input.subscribe()), PROMPT_TIMEOUT
-                    )
-
+            async for payload in self.__game.input.subscribe():
                 for pdu in payload:
                     await write(pdu, self.__writer, self.__verbose)
-            except TimeoutError:
-                self.__game.concede_prompt()
 
     async def __ping(self):
         seq_num = 1
