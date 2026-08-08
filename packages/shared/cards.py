@@ -1,16 +1,23 @@
 """Game cards."""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from enum import StrEnum, auto
 from inspect import isabstract
+from typing import Literal
+
+from rich.console import Console
+
 
 from packages.shared.types import ID
+
+console = Console()
 
 CardID = ID
 CreatureCardID = CardID
 LandCardID = CardID
 
-# TODO Card cast and ability logic
+# TODO Please add the ability  and cast text and cost ()
 
 
 class Card(ABC):
@@ -27,6 +34,48 @@ class Card(ABC):
         R = auto()
         G = auto()
         C = "x"
+
+        def __format__(self, format_spec: str) -> str:
+            """Format object.
+
+            Args:
+                format_spec (str): Format specifier
+
+            Returns:
+                str: Formatted string
+            """
+            match self:
+                case Card.Color.W:
+                    style = "bold black on white"
+                case Card.Color.U:
+                    style = "bold bright_blue on dark_blue"
+                case Card.Color.B:
+                    style = "bold white on black"
+                case Card.Color.R:
+                    style = "bold bright_red on dark_red"
+                case Card.Color.G:
+                    style = "bold bright_green on dark_green"
+                case Card.Color.C:
+                    style = "bold grey30 on grey70"
+
+            with console.capture() as capture:
+                console.print(
+                    f"[{style}] {super().__format__(format_spec).upper()} [/]"
+                )
+
+            return capture.get()
+
+    @dataclass
+    class AbilityDetails(object):
+        """Details of abilities.
+
+        Attributes:
+            mana_cost (dict[Card.Color, int]): Mana cost
+            text (str): Ability description
+        """
+
+        mana_cost: dict[Card.Color, int] = field(default_factory=dict, compare=False)
+        text: str = field(default="")
 
     def __init__(self, id: CardID) -> None:
         """Creates a card instance.
@@ -82,11 +131,11 @@ class Card(ABC):
 
     @staticmethod
     @abstractmethod
-    def cost() -> dict[Color, int]:
-        """Card cost.
+    def cast_details() -> AbilityDetails:
+        """Card cast details.
 
         Returns:
-            dict[Color, int]: Card cost
+            AbilityDetails: Card cast details
         """
         pass
 
@@ -149,11 +198,21 @@ class Subtype(ABC):
         pass
 
 
-class TapCard(Card):
-    """Card that can tap."""
+class BattlefieldCard(Card):
+    """Card that are placed on the battlefield."""
+
+    @dataclass(unsafe_hash=True)
+    class BattlefieldAbilityDetails(Card.AbilityDetails):
+        """Ability including tap cost.
+
+        Attriibutes:
+            tap_cost (Literal[True] | None) Tap cost
+        """
+
+        tap_cost: Literal[True] | None = field(default=None, compare=False)
 
     def __init__(self, id: ID) -> None:
-        """Creates a tap card instance.
+        """Creates a battlefield card instance.
 
         Args:
             id (ID): Card ID
@@ -170,18 +229,40 @@ class TapCard(Card):
         """
         return self._tapped
 
+    @staticmethod
+    @abstractmethod
+    def abilities_details() -> set[BattlefieldAbilityDetails]:
+        """Card abilities details.
 
-class ArtifactCard(TapCard):
+        Returns:
+            set[Card.AbilityDetails]: List of abilities details
+        """
+        pass
+
+
+class ArtifactCard(BattlefieldCard):
     """Artifact Card."""
 
     pass
 
 
-class CreatureCard(TapCard, Subtype):
+class CreatureCard(BattlefieldCard, Subtype):
     """Creature Card."""
+
+    class Modifier(StrEnum):
+        """Creature modifier."""
+
+        HASTE = auto()
+        TRAMPLE = auto()
+        FLYING = auto()
+        HEXPROOF = auto()
+        DEFENDER = auto()
+        FIRST_STRIKE = auto()
+        VIGILANCE = auto()
 
     def __init__(self, id: ID) -> None:  # noqa: D107
         super().__init__(id)
+        self.__modifiers = self.base_modifiers()
         self._summoning_sick = False
 
     @staticmethod
@@ -204,6 +285,24 @@ class CreatureCard(TapCard, Subtype):
         """
         pass
 
+    @staticmethod
+    @abstractmethod
+    def base_modifiers() -> set[Modifier]:
+        """Creature base modifiers.
+
+        Returns:
+            set[str]: List of modifiers
+        """
+        pass
+
+    def modifiers(self) -> set[Modifier]:
+        """Creature current modifiers.
+
+        Returns:
+            set[str]: List of modifiers
+        """
+        return self.__modifiers
+
     @property
     def summoning_sick(self):
         """Cast creature summoning sickness.
@@ -212,6 +311,20 @@ class CreatureCard(TapCard, Subtype):
             bool: Summoning sickness
         """
         return self._summoning_sick
+
+
+class TriggerCreatureCard(CreatureCard):
+    """Creature with trigger."""
+
+    @staticmethod
+    @abstractmethod
+    def trigger_details() -> str:
+        """Trigger details.
+
+        Returns:
+            str: Trigger description
+        """
+        pass
 
 
 class ArtifactCreatureCard(ArtifactCard, CreatureCard):
@@ -232,7 +345,7 @@ class InstantCard(Card):
     pass
 
 
-class LandCard(TapCard, Subtype):
+class LandCard(BattlefieldCard, Subtype):
     """Land Card."""
 
     pass
@@ -260,12 +373,20 @@ class Mountain(LandCard):  # noqa: D101
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
         return "Basic Mountain"
+
+    @staticmethod
+    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return {
+            BattlefieldCard.BattlefieldAbilityDetails(
+                text=f"Add {Card.Color.G}", tap_cost=True
+            )
+        }
 
 
 class Forest(LandCard):
@@ -284,8 +405,8 @@ class Forest(LandCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -308,8 +429,8 @@ class Plains(LandCard):
         return Card.Color.W
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -332,8 +453,8 @@ class Island(LandCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -356,8 +477,8 @@ class Swamp(LandCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -380,8 +501,8 @@ class LightningBolt(InstantCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1}, "")
 
 
 class Shock(InstantCard):
@@ -400,8 +521,8 @@ class Shock(InstantCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1}, "")
 
 
 class LavaSpike(SorceryCard):
@@ -420,8 +541,8 @@ class LavaSpike(SorceryCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1}, "")
 
 
 class FlameSlash(SorceryCard):
@@ -440,8 +561,8 @@ class FlameSlash(SorceryCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1}, "")
 
 
 class SearingSpear(InstantCard):
@@ -460,8 +581,8 @@ class SearingSpear(InstantCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1, Card.Color.C: 1}, "")
 
 
 class Skullcrack(InstantCard):
@@ -480,8 +601,8 @@ class Skullcrack(InstantCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1, Card.Color.C: 1}, "")
 
 
 class RiftBolt(SorceryCard):
@@ -500,8 +621,8 @@ class RiftBolt(SorceryCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1, Card.Color.C: 2}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1, Card.Color.C: 2}, "")
 
 
 class Incinerate(InstantCard):
@@ -520,11 +641,11 @@ class Incinerate(InstantCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1, Card.Color.C: 1}, "")
 
 
-class GoblinGuide(CreatureCard):
+class GoblinGuide(TriggerCreatureCard):
     """Goblin Guide."""
 
     @staticmethod
@@ -540,8 +661,8 @@ class GoblinGuide(CreatureCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -554,6 +675,14 @@ class GoblinGuide(CreatureCard):
     @staticmethod
     def toughness() -> int:  # noqa: D102
         return 2
+
+    @staticmethod
+    def base_modifiers() -> set[CreatureCard.Modifier]:  # noqa: D102
+        return {CreatureCard.Modifier.HASTE}
+
+    @staticmethod
+    def trigger_details() -> str:  # noqa: D102
+        return "Whenever Goblin Guide attacks, defending player reveals top card of library. If it's a land, that player puts it into their hand."
 
 
 class GoblinBushwhacker(CreatureCard):
@@ -572,8 +701,8 @@ class GoblinBushwhacker(CreatureCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -604,8 +733,8 @@ class RecklessWurm(CreatureCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1, Card.Color.C: 3}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1, Card.Color.C: 3}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -636,8 +765,8 @@ class MonasterySwiftspear(CreatureCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -668,8 +797,8 @@ class Counterspell(InstantCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 2}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 2}, "")
 
 
 class Cancel(InstantCard):
@@ -688,8 +817,8 @@ class Cancel(InstantCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 2, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 2, Card.Color.C: 1}, "")
 
 
 class Unsummon(InstantCard):
@@ -708,8 +837,8 @@ class Unsummon(InstantCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 1}, "")
 
 
 class Ponder(SorceryCard):
@@ -728,8 +857,8 @@ class Ponder(SorceryCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 1}, "")
 
 
 class Negate(InstantCard):
@@ -748,8 +877,8 @@ class Negate(InstantCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 1, Card.Color.C: 1}, "")
 
 
 class ManaLeak(InstantCard):
@@ -768,8 +897,8 @@ class ManaLeak(InstantCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 1, Card.Color.C: 1}, "")
 
 
 class MerfolkLooter(CreatureCard):
@@ -788,8 +917,8 @@ class MerfolkLooter(CreatureCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 1, Card.Color.C: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -820,8 +949,8 @@ class ProdigalSorcerer(CreatureCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 1, Card.Color.C: 2}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 1, Card.Color.C: 2}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -852,8 +981,8 @@ class AirElemental(CreatureCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 2, Card.Color.C: 3}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 2, Card.Color.C: 3}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -884,8 +1013,8 @@ class PhantasmalBear(CreatureCard):
         return Card.Color.U
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.U: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.U: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -916,8 +1045,8 @@ class GiantGrowth(InstantCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.G: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.G: 1}, "")
 
 
 class RampantGrowth(SorceryCard):
@@ -936,8 +1065,8 @@ class RampantGrowth(SorceryCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.G: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.G: 1, Card.Color.C: 1}, "")
 
 
 class Naturalize(InstantCard):
@@ -956,8 +1085,8 @@ class Naturalize(InstantCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.G: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.G: 1, Card.Color.C: 1}, "")
 
 
 class VinesOfVastwood(InstantCard):
@@ -976,8 +1105,8 @@ class VinesOfVastwood(InstantCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.G: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.G: 1}, "")
 
 
 class LlanowarElves(CreatureCard):
@@ -996,8 +1125,8 @@ class LlanowarElves(CreatureCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.G: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.G: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1028,8 +1157,8 @@ class ElvishMystic(CreatureCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.G: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.G: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1060,8 +1189,8 @@ class GrizzlyBears(CreatureCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.G: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.G: 1, Card.Color.C: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1092,8 +1221,8 @@ class LeatherbackBaloth(CreatureCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.G: 3}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.G: 3}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1124,8 +1253,8 @@ class TrollAscetic(CreatureCard):
         return Card.Color.G
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.G: 2, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.G: 2, Card.Color.C: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1156,8 +1285,8 @@ class WallOfStone(CreatureCard):
         return Card.Color.R
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.R: 2, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.R: 2, Card.Color.C: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1188,8 +1317,8 @@ class SwordsToPlowshares(InstantCard):
         return Card.Color.W
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.W: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.W: 1}, "")
 
 
 class PathToExile(InstantCard):
@@ -1208,8 +1337,8 @@ class PathToExile(InstantCard):
         return Card.Color.W
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.W: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.W: 1}, "")
 
 
 class HealingSalve(InstantCard):
@@ -1228,8 +1357,8 @@ class HealingSalve(InstantCard):
         return Card.Color.W
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.W: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.W: 1}, "")
 
 
 class Pacifism(EnchantmentCard):
@@ -1248,8 +1377,8 @@ class Pacifism(EnchantmentCard):
         return Card.Color.W
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.W: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.W: 1, Card.Color.C: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1272,8 +1401,8 @@ class WhiteKnight(CreatureCard):
         return Card.Color.W
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.W: 2}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.W: 2}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1304,8 +1433,8 @@ class SerraAngel(CreatureCard):
         return Card.Color.W
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.W: 2, Card.Color.C: 3}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.W: 2, Card.Color.C: 3}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1336,8 +1465,8 @@ class SavannahLions(CreatureCard):
         return Card.Color.W
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.W: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.W: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1368,8 +1497,8 @@ class MotherOfRunes(CreatureCard):
         return Card.Color.W
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.W: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.W: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1400,8 +1529,8 @@ class DarkRitual(InstantCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.B: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.B: 1}, "")
 
 
 class Terror(InstantCard):
@@ -1420,8 +1549,8 @@ class Terror(InstantCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.B: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.B: 1, Card.Color.C: 1}, "")
 
 
 class DoomBlade(InstantCard):
@@ -1440,8 +1569,8 @@ class DoomBlade(InstantCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.B: 1, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.B: 1, Card.Color.C: 1}, "")
 
 
 class RaiseDead(SorceryCard):
@@ -1460,8 +1589,8 @@ class RaiseDead(SorceryCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.B: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.B: 1}, "")
 
 
 class MindRot(SorceryCard):
@@ -1480,8 +1609,8 @@ class MindRot(SorceryCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.B: 1, Card.Color.C: 2}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.B: 1, Card.Color.C: 2}, "")
 
 
 class GrayMerchantOfAsphodel(CreatureCard):
@@ -1500,8 +1629,8 @@ class GrayMerchantOfAsphodel(CreatureCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.B: 2, Card.Color.C: 3}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.B: 2, Card.Color.C: 3}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1532,8 +1661,8 @@ class Gravedigger(CreatureCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.B: 1, Card.Color.C: 3}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.B: 1, Card.Color.C: 3}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1564,8 +1693,8 @@ class RoyalAssassin(CreatureCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.B: 2, Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.B: 2, Card.Color.C: 1}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1596,8 +1725,8 @@ class BlackKnight(CreatureCard):
         return Card.Color.B
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.B: 2}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.B: 2}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1628,8 +1757,8 @@ class SolRing(ArtifactCard):
         return Card.Color.C
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.C: 1}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.C: 1}, "")
 
 
 class Ornithopter(ArtifactCreatureCard):
@@ -1648,8 +1777,8 @@ class Ornithopter(ArtifactCreatureCard):
         return Card.Color.C
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({}, "")
 
     @staticmethod
     def subtype() -> str:  # noqa: D102
@@ -1680,8 +1809,8 @@ class Millstone(ArtifactCard):
         return Card.Color.C
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.C: 2}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.C: 2}, "")
 
 
 class RodOfRuin(ArtifactCard):
@@ -1700,5 +1829,5 @@ class RodOfRuin(ArtifactCard):
         return Card.Color.C
 
     @staticmethod
-    def cost() -> dict[Card.Color, int]:  # noqa: D102
-        return {Card.Color.C: 4}
+    def cast_details() -> Card.AbilityDetails:  # noqa: D102
+        return Card.AbilityDetails({Card.Color.C: 4}, "")

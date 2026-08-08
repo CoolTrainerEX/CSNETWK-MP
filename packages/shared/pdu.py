@@ -320,7 +320,7 @@ class CastSpell(BaseModel):
     type: Literal[Type.CAST_SPELL] = Type.CAST_SPELL
     seq_num: int
     card_id: CardID
-    targets: set[ID]
+    targets: set[ID] = set()
     mana_payment: dict[Card.Color, int]
 
 
@@ -580,7 +580,7 @@ class DeclareAttackers(BaseModel):
 
     type: Literal[Type.DECLARE_ATTACKERS] = Type.DECLARE_ATTACKERS
     seq_num: int
-    attackers: set[__Attacker]
+    attackers: set[__Attacker] = set()
 
 
 class DeclareBlockers(BaseModel):
@@ -631,7 +631,7 @@ class DeclareBlockers(BaseModel):
 
     type: Literal[Type.DECLARE_BLOCKERS] = Type.DECLARE_BLOCKERS
     seq_num: int
-    attackers: set[__Blocker]
+    blockers: set[__Blocker] = set()
 
 
 class AssignDamageOrder(BaseModel):
