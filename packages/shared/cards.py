@@ -2,9 +2,9 @@
 
 from abc import ABC, abstractmethod
 from enum import StrEnum, auto
+from inspect import isabstract
 
-from packages.shared.game import ID
-
+from packages.shared.types import ID
 
 CardID = ID
 CreatureCardID = CardID
@@ -15,6 +15,8 @@ LandCardID = CardID
 
 class Card(ABC):
     """Base card class."""
+
+    __registry: dict[CardID, type[Card]] = {}
 
     class Color(StrEnum):
         """Card color."""
@@ -31,8 +33,22 @@ class Card(ABC):
 
         Args:
             id (ID): Card ID
+
+        Raises:
+            ValueError: Id is not valid
         """
-        self.__id = id
+        if id in self._ids():
+            self.__id = id
+        else:
+            raise ValueError(f"{id} is not in {self._ids()}.")
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        """Registers cards into the master registry."""
+        if not isabstract(cls):
+            for id in cls._ids():
+                cls.__registry[id] = cls
+
+        return super().__init_subclass__(**kwargs)
 
     @staticmethod
     @abstractmethod
@@ -83,6 +99,22 @@ class Card(ABC):
         """
         return self.__id
 
+    @classmethod
+    def from_id(cls, id: str):
+        """Gets the card class from the id.
+
+        Args:
+            id (str): Card ID
+
+        Returns:
+            type[Card]: Card class
+        """
+        return cls.__registry[id]
+
+    @staticmethod
+    def _gen_ids(base: str, copies: int) -> set[str]:
+        return {f"{base}_{i:03d}" for i in range(1, copies + 1)}
+
     def __eq__(self, value: object) -> bool:
         """Checks object equality.
 
@@ -130,7 +162,6 @@ class TapCard(Card):
         self._tapped = False
 
     @property
-    @abstractmethod
     def tapped(self) -> bool:
         """Tapped.
 
@@ -151,7 +182,7 @@ class CreatureCard(TapCard, Subtype):
 
     @staticmethod
     @abstractmethod
-    def power() -> int:
+    def power() -> int:  # noqa: D102
         """Creature power.
 
         Returns:
@@ -161,7 +192,7 @@ class CreatureCard(TapCard, Subtype):
 
     @staticmethod
     @abstractmethod
-    def toughness() -> int:
+    def toughness() -> int:  # noqa: D102
         """Creature toughness.
 
         Returns:
@@ -200,736 +231,1461 @@ class SorceryCard(Card):
     pass
 
 
-# card_id
-def _gen_ids(base: str, copies: int) -> set[str]:
-    return {f"{base}_{i:03d}" for i in range(1, copies + 1)}
+class Mountain(LandCard):  # noqa: D101
+    """Mountain."""
 
-class Mountain(LandCard):
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("mountain", 20)
+    def _ids() -> set[str]:
+        return Card._gen_ids("mountain", 20)
+
     @staticmethod
-    def name() -> str: return "Mountain"
+    def name() -> str:  # noqa: D102
+        return "Mountain"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {}
+
     @staticmethod
-    def subtype() -> str: return "Basic Mountain"
+    def subtype() -> str:  # noqa: D102
+        return "Basic Mountain"
+
 
 class Forest(LandCard):
+    """Forest."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("forest", 20)
+    def _ids() -> set[str]:
+        return Card._gen_ids("forest", 20)
+
     @staticmethod
-    def name() -> str: return "Forest"
+    def name() -> str:  # noqa: D102
+        return "Forest"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {}
+
     @staticmethod
-    def subtype() -> str: return "Basic Forest"
+    def subtype() -> str:  # noqa: D102
+        return "Basic Forest"
+
 
 class Plains(LandCard):
+    """Plains."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("plains", 20)
+    def _ids() -> set[str]:
+        return Card._gen_ids("plains", 20)
+
     @staticmethod
-    def name() -> str: return "Plains"
+    def name() -> str:  # noqa: D102
+        return "Plains"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.W
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.W
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {}
+
     @staticmethod
-    def subtype() -> str: return "Basic Plains"
+    def subtype() -> str:  # noqa: D102
+        return "Basic Plains"
+
 
 class Island(LandCard):
+    """Island."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("island", 20)
+    def _ids() -> set[str]:
+        return Card._gen_ids("island", 20)
+
     @staticmethod
-    def name() -> str: return "Island"
+    def name() -> str:  # noqa: D102
+        return "Island"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {}
+
     @staticmethod
-    def subtype() -> str: return "Basic Island"
+    def subtype() -> str:  # noqa: D102
+        return "Basic Island"
+
 
 class Swamp(LandCard):
+    """Swamp."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("swamp", 20)
+    def _ids() -> set[str]:
+        return Card._gen_ids("swamp", 20)
+
     @staticmethod
-    def name() -> str: return "Swamp"
+    def name() -> str:  # noqa: D102
+        return "Swamp"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {}
+
     @staticmethod
-    def subtype() -> str: return "Basic Swamp"
+    def subtype() -> str:  # noqa: D102
+        return "Basic Swamp"
+
 
 class LightningBolt(InstantCard):
+    """Lightning Bolt."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("lightning_bolt", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("lightning_bolt", 4)
+
     @staticmethod
-    def name() -> str: return "Lightning Bolt"
+    def name() -> str:  # noqa: D102
+        return "Lightning Bolt"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1}
+
 
 class Shock(InstantCard):
+    """Shock."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("shock", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("shock", 4)
+
     @staticmethod
-    def name() -> str: return "Shock"
+    def name() -> str:  # noqa: D102
+        return "Shock"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1}
+
 
 class LavaSpike(SorceryCard):
+    """Lava Spike."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("lava_spike", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("lava_spike", 4)
+
     @staticmethod
-    def name() -> str: return "Lava Spike"
+    def name() -> str:  # noqa: D102
+        return "Lava Spike"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1}
+
 
 class FlameSlash(SorceryCard):
+    """Flame Slash."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("flame_slash", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("flame_slash", 4)
+
     @staticmethod
-    def name() -> str: return "Flame Slash"
+    def name() -> str:  # noqa: D102
+        return "Flame Slash"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1}
+
 
 class SearingSpear(InstantCard):
+    """Searing Spear."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("searing_spear", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("searing_spear", 4)
+
     @staticmethod
-    def name() -> str: return "Searing Spear"
+    def name() -> str:  # noqa: D102
+        return "Searing Spear"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1, Card.Color.C: 1}
+
 
 class Skullcrack(InstantCard):
+    """Skullcrack."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("skullcrack", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("skullcrack", 4)
+
     @staticmethod
-    def name() -> str: return "Skullcrack"
+    def name() -> str:  # noqa: D102
+        return "Skullcrack"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1, Card.Color.C: 1}
+
 
 class RiftBolt(SorceryCard):
+    """Rift Bolt."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("rift_bolt", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("rift_bolt", 4)
+
     @staticmethod
-    def name() -> str: return "Rift Bolt"
+    def name() -> str:  # noqa: D102
+        return "Rift Bolt"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1, Card.Color.C: 2}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1, Card.Color.C: 2}
+
 
 class Incinerate(InstantCard):
+    """Incinerate."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("incinerate", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("incinerate", 4)
+
     @staticmethod
-    def name() -> str: return "Incinerate"
+    def name() -> str:  # noqa: D102
+        return "Incinerate"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1, Card.Color.C: 1}
+
 
 class GoblinGuide(CreatureCard):
+    """Goblin Guide."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("goblin_guide", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("goblin_guide", 4)
+
     @staticmethod
-    def name() -> str: return "Goblin Guide"
+    def name() -> str:  # noqa: D102
+        return "Goblin Guide"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1}
+
     @staticmethod
-    def subtype() -> str: return "Goblin Scout"
+    def subtype() -> str:  # noqa: D102
+        return "Goblin Scout"
+
     @staticmethod
-    def power() -> int: return 2
+    def power() -> int:  # noqa: D102
+        return 2
+
     @staticmethod
-    def toughness() -> int: return 2
+    def toughness() -> int:  # noqa: D102
+        return 2
+
 
 class GoblinBushwhacker(CreatureCard):
+    """Goblin Bushwhacker."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("goblin_bushwhacker", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("goblin_bushwhacker", 4)
+
     @staticmethod
-    def name() -> str: return "Goblin Bushwhacker"
+    def name() -> str:  # noqa: D102
+        return "Goblin Bushwhacker"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1}
+
     @staticmethod
-    def subtype() -> str: return "Goblin Warrior"
+    def subtype() -> str:  # noqa: D102
+        return "Goblin Warrior"
+
     @staticmethod
-    def power() -> int: return 1
+    def power() -> int:  # noqa: D102
+        return 1
+
     @staticmethod
-    def toughness() -> int: return 1
+    def toughness() -> int:  # noqa: D102
+        return 1
+
 
 class RecklessWurm(CreatureCard):
+    """Reckless Wurm."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("reckless_wurm", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("reckless_wurm", 4)
+
     @staticmethod
-    def name() -> str: return "Reckless Wurm"
+    def name() -> str:  # noqa: D102
+        return "Reckless Wurm"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1, Card.Color.C: 3}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1, Card.Color.C: 3}
+
     @staticmethod
-    def subtype() -> str: return "Wurm"
+    def subtype() -> str:  # noqa: D102
+        return "Wurm"
+
     @staticmethod
-    def power() -> int: return 4
+    def power() -> int:  # noqa: D102
+        return 4
+
     @staticmethod
-    def toughness() -> int: return 4
+    def toughness() -> int:  # noqa: D102
+        return 4
+
 
 class MonasterySwiftspear(CreatureCard):
+    """Monastery Swiftspear."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("monastery_swiftspear", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("monastery_swiftspear", 4)
+
     @staticmethod
-    def name() -> str: return "Monastery Swiftspear"
+    def name() -> str:  # noqa: D102
+        return "Monastery Swiftspear"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 1}
+
     @staticmethod
-    def subtype() -> str: return "Human Monk"
+    def subtype() -> str:  # noqa: D102
+        return "Human Monk"
+
     @staticmethod
-    def power() -> int: return 1
+    def power() -> int:  # noqa: D102
+        return 1
+
     @staticmethod
-    def toughness() -> int: return 2
+    def toughness() -> int:  # noqa: D102
+        return 2
+
 
 class Counterspell(InstantCard):
+    """Counterspell."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("counterspell", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("counterspell", 4)
+
     @staticmethod
-    def name() -> str: return "Counterspell"
+    def name() -> str:  # noqa: D102
+        return "Counterspell"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 2}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 2}
+
 
 class Cancel(InstantCard):
+    """Cancel."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("cancel", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("cancel", 4)
+
     @staticmethod
-    def name() -> str: return "Cancel"
+    def name() -> str:  # noqa: D102
+        return "Cancel"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 2, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 2, Card.Color.C: 1}
+
 
 class Unsummon(InstantCard):
+    """Unsummon."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("unsummon", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("unsummon", 4)
+
     @staticmethod
-    def name() -> str: return "Unsummon"
+    def name() -> str:  # noqa: D102
+        return "Unsummon"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 1}
+
 
 class Ponder(SorceryCard):
+    """Ponder."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("ponder", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("ponder", 4)
+
     @staticmethod
-    def name() -> str: return "Ponder"
+    def name() -> str:  # noqa: D102
+        return "Ponder"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 1}
+
 
 class Negate(InstantCard):
+    """Negate."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("negate", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("negate", 4)
+
     @staticmethod
-    def name() -> str: return "Negate"
+    def name() -> str:  # noqa: D102
+        return "Negate"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 1, Card.Color.C: 1}
+
 
 class ManaLeak(InstantCard):
+    """Mana Leak."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("mana_leak", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("mana_leak", 4)
+
     @staticmethod
-    def name() -> str: return "Mana Leak"
+    def name() -> str:  # noqa: D102
+        return "Mana Leak"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 1, Card.Color.C: 1}
+
 
 class MerfolkLooter(CreatureCard):
+    """Merfolk Looter."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("merfolk_looter", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("merfolk_looter", 4)
+
     @staticmethod
-    def name() -> str: return "Merfolk Looter"
+    def name() -> str:  # noqa: D102
+        return "Merfolk Looter"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 1, Card.Color.C: 1}
+
     @staticmethod
-    def subtype() -> str: return "Merfolk Rogue"
+    def subtype() -> str:  # noqa: D102
+        return "Merfolk Rogue"
+
     @staticmethod
-    def power() -> int: return 1
+    def power() -> int:  # noqa: D102
+        return 1
+
     @staticmethod
-    def toughness() -> int: return 1
+    def toughness() -> int:  # noqa: D102
+        return 1
+
 
 class ProdigalSorcerer(CreatureCard):
+    """Prodigal Sorcerer."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("prodigal_sorcerer", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("prodigal_sorcerer", 4)
+
     @staticmethod
-    def name() -> str: return "Prodigal Sorcerer"
+    def name() -> str:  # noqa: D102
+        return "Prodigal Sorcerer"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 1, Card.Color.C: 2}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 1, Card.Color.C: 2}
+
     @staticmethod
-    def subtype() -> str: return "Human Wizard"
+    def subtype() -> str:  # noqa: D102
+        return "Human Wizard"
+
     @staticmethod
-    def power() -> int: return 1
+    def power() -> int:  # noqa: D102
+        return 1
+
     @staticmethod
-    def toughness() -> int: return 1
+    def toughness() -> int:  # noqa: D102
+        return 1
+
 
 class AirElemental(CreatureCard):
+    """Air Elemental."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("air_elemental", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("air_elemental", 4)
+
     @staticmethod
-    def name() -> str: return "Air Elemental"
+    def name() -> str:  # noqa: D102
+        return "Air Elemental"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 2, Card.Color.C: 3}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 2, Card.Color.C: 3}
+
     @staticmethod
-    def subtype() -> str: return "Elemental"
+    def subtype() -> str:  # noqa: D102
+        return "Elemental"
+
     @staticmethod
-    def power() -> int: return 4
+    def power() -> int:  # noqa: D102
+        return 4
+
     @staticmethod
-    def toughness() -> int: return 4
+    def toughness() -> int:  # noqa: D102
+        return 4
+
 
 class PhantasmalBear(CreatureCard):
+    """Phantasmal Bear."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("phantasmal_bear", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("phantasmal_bear", 4)
+
     @staticmethod
-    def name() -> str: return "Phantasmal Bear"
+    def name() -> str:  # noqa: D102
+        return "Phantasmal Bear"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.U
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.U
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.U: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.U: 1}
+
     @staticmethod
-    def subtype() -> str: return "Bear Illusion"
+    def subtype() -> str:  # noqa: D102
+        return "Bear Illusion"
+
     @staticmethod
-    def power() -> int: return 2
+    def power() -> int:  # noqa: D102
+        return 2
+
     @staticmethod
-    def toughness() -> int: return 2
+    def toughness() -> int:  # noqa: D102
+        return 2
+
 
 class GiantGrowth(InstantCard):
+    """Giant Growth."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("giant_growth", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("giant_growth", 4)
+
     @staticmethod
-    def name() -> str: return "Giant Growth"
+    def name() -> str:  # noqa: D102
+        return "Giant Growth"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.G: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.G: 1}
+
 
 class RampantGrowth(SorceryCard):
+    """Rampant Growth."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("rampant_growth", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("rampant_growth", 4)
+
     @staticmethod
-    def name() -> str: return "Rampant Growth"
+    def name() -> str:  # noqa: D102
+        return "Rampant Growth"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.G: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.G: 1, Card.Color.C: 1}
+
 
 class Naturalize(InstantCard):
+    """Naturalize."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("naturalize", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("naturalize", 4)
+
     @staticmethod
-    def name() -> str: return "Naturalize"
+    def name() -> str:  # noqa: D102
+        return "Naturalize"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.G: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.G: 1, Card.Color.C: 1}
+
 
 class VinesOfVastwood(InstantCard):
+    """Vines of Vastwood."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("vines_of_vastwood", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("vines_of_vastwood", 4)
+
     @staticmethod
-    def name() -> str: return "Vines of Vastwood"
+    def name() -> str:  # noqa: D102
+        return "Vines of Vastwood"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.G: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.G: 1}
+
 
 class LlanowarElves(CreatureCard):
+    """Llanowar Elves."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("llanowar_elves", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("llanowar_elves", 4)
+
     @staticmethod
-    def name() -> str: return "Llanowar Elves"
+    def name() -> str:  # noqa: D102
+        return "Llanowar Elves"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.G: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.G: 1}
+
     @staticmethod
-    def subtype() -> str: return "Elf Druid"
+    def subtype() -> str:  # noqa: D102
+        return "Elf Druid"
+
     @staticmethod
-    def power() -> int: return 1
+    def power() -> int:  # noqa: D102
+        return 1
+
     @staticmethod
-    def toughness() -> int: return 1
+    def toughness() -> int:  # noqa: D102
+        return 1
+
 
 class ElvishMystic(CreatureCard):
+    """Elvish Mystic."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("elvish_mystic", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("elvish_mystic", 4)
+
     @staticmethod
-    def name() -> str: return "Elvish Mystic"
+    def name() -> str:  # noqa: D102
+        return "Elvish Mystic"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.G: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.G: 1}
+
     @staticmethod
-    def subtype() -> str: return "Elf Druid"
+    def subtype() -> str:  # noqa: D102
+        return "Elf Druid"
+
     @staticmethod
-    def power() -> int: return 1
+    def power() -> int:  # noqa: D102
+        return 1
+
     @staticmethod
-    def toughness() -> int: return 1
+    def toughness() -> int:  # noqa: D102
+        return 1
+
 
 class GrizzlyBears(CreatureCard):
+    """Grizzly Bears."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("grizzly_bears", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("grizzly_bears", 4)
+
     @staticmethod
-    def name() -> str: return "Grizzly Bears"
+    def name() -> str:  # noqa: D102
+        return "Grizzly Bears"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.G: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.G: 1, Card.Color.C: 1}
+
     @staticmethod
-    def subtype() -> str: return "Bear"
+    def subtype() -> str:  # noqa: D102
+        return "Bear"
+
     @staticmethod
-    def power() -> int: return 2
+    def power() -> int:  # noqa: D102
+        return 2
+
     @staticmethod
-    def toughness() -> int: return 2
+    def toughness() -> int:  # noqa: D102
+        return 2
+
 
 class LeatherbackBaloth(CreatureCard):
+    """Leatherback Baloth."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("leatherback_baloth", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("leatherback_baloth", 4)
+
     @staticmethod
-    def name() -> str: return "Leatherback Baloth"
+    def name() -> str:  # noqa: D102
+        return "Leatherback Baloth"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.G: 3}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.G: 3}
+
     @staticmethod
-    def subtype() -> str: return "Beast"
+    def subtype() -> str:  # noqa: D102
+        return "Beast"
+
     @staticmethod
-    def power() -> int: return 4
+    def power() -> int:  # noqa: D102
+        return 4
+
     @staticmethod
-    def toughness() -> int: return 5
+    def toughness() -> int:  # noqa: D102
+        return 5
+
 
 class TrollAscetic(CreatureCard):
+    """Troll Ascetic."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("troll_ascetic", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("troll_ascetic", 4)
+
     @staticmethod
-    def name() -> str: return "Troll Ascetic"
+    def name() -> str:  # noqa: D102
+        return "Troll Ascetic"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.G
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.G
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.G: 2, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.G: 2, Card.Color.C: 1}
+
     @staticmethod
-    def subtype() -> str: return "Troll Shaman"
+    def subtype() -> str:  # noqa: D102
+        return "Troll Shaman"
+
     @staticmethod
-    def power() -> int: return 3
+    def power() -> int:  # noqa: D102
+        return 3
+
     @staticmethod
-    def toughness() -> int: return 2
+    def toughness() -> int:  # noqa: D102
+        return 2
+
 
 class WallOfStone(CreatureCard):
+    """Wall of Stone."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("wall_of_stone", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("wall_of_stone", 4)
+
     @staticmethod
-    def name() -> str: return "Wall of Stone"
+    def name() -> str:  # noqa: D102
+        return "Wall of Stone"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.R
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.R
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.R: 2, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.R: 2, Card.Color.C: 1}
+
     @staticmethod
-    def subtype() -> str: return "Wall"
+    def subtype() -> str:  # noqa: D102
+        return "Wall"
+
     @staticmethod
-    def power() -> int: return 0
+    def power() -> int:  # noqa: D102
+        return 0
+
     @staticmethod
-    def toughness() -> int: return 8
+    def toughness() -> int:  # noqa: D102
+        return 8
+
 
 class SwordsToPlowshares(InstantCard):
+    """Swords to Plowshares."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("swords_to_plowshares", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("swords_to_plowshares", 4)
+
     @staticmethod
-    def name() -> str: return "Swords to Plowshares"
+    def name() -> str:  # noqa: D102
+        return "Swords to Plowshares"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.W
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.W
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.W: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.W: 1}
+
 
 class PathToExile(InstantCard):
+    """Path to Exile."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("path_to_exile", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("path_to_exile", 4)
+
     @staticmethod
-    def name() -> str: return "Path to Exile"
+    def name() -> str:  # noqa: D102
+        return "Path to Exile"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.W
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.W
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.W: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.W: 1}
+
 
 class HealingSalve(InstantCard):
+    """Healing Salve."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("healing_salve", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("healing_salve", 4)
+
     @staticmethod
-    def name() -> str: return "Healing Salve"
+    def name() -> str:  # noqa: D102
+        return "Healing Salve"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.W
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.W
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.W: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.W: 1}
+
 
 class Pacifism(EnchantmentCard):
+    """Pacifism."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("pacifism", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("pacifism", 4)
+
     @staticmethod
-    def name() -> str: return "Pacifism"
+    def name() -> str:  # noqa: D102
+        return "Pacifism"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.W
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.W
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.W: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.W: 1, Card.Color.C: 1}
+
     @staticmethod
-    def subtype() -> str: return "Aura"
+    def subtype() -> str:  # noqa: D102
+        return "Aura"
+
 
 class WhiteKnight(CreatureCard):
+    """White Knight."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("white_knight", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("white_knight", 4)
+
     @staticmethod
-    def name() -> str: return "White Knight"
+    def name() -> str:  # noqa: D102
+        return "White Knight"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.W
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.W
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.W: 2}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.W: 2}
+
     @staticmethod
-    def subtype() -> str: return "Human Knight"
+    def subtype() -> str:  # noqa: D102
+        return "Human Knight"
+
     @staticmethod
-    def power() -> int: return 2
+    def power() -> int:  # noqa: D102
+        return 2
+
     @staticmethod
-    def toughness() -> int: return 2
+    def toughness() -> int:  # noqa: D102
+        return 2
+
 
 class SerraAngel(CreatureCard):
+    """Serra Angel."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("serra_angel", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("serra_angel", 4)
+
     @staticmethod
-    def name() -> str: return "Serra Angel"
+    def name() -> str:  # noqa: D102
+        return "Serra Angel"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.W
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.W
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.W: 2, Card.Color.C: 3}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.W: 2, Card.Color.C: 3}
+
     @staticmethod
-    def subtype() -> str: return "Angel"
+    def subtype() -> str:  # noqa: D102
+        return "Angel"
+
     @staticmethod
-    def power() -> int: return 4
+    def power() -> int:  # noqa: D102
+        return 4
+
     @staticmethod
-    def toughness() -> int: return 4
+    def toughness() -> int:  # noqa: D102
+        return 4
+
 
 class SavannahLions(CreatureCard):
+    """Savannah Lions."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("savannah_lions", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("savannah_lions", 4)
+
     @staticmethod
-    def name() -> str: return "Savannah Lions"
+    def name() -> str:  # noqa: D102
+        return "Savannah Lions"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.W
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.W
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.W: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.W: 1}
+
     @staticmethod
-    def subtype() -> str: return "Cat"
+    def subtype() -> str:  # noqa: D102
+        return "Cat"
+
     @staticmethod
-    def power() -> int: return 2
+    def power() -> int:  # noqa: D102
+        return 2
+
     @staticmethod
-    def toughness() -> int: return 1
+    def toughness() -> int:  # noqa: D102
+        return 1
+
 
 class MotherOfRunes(CreatureCard):
+    """Mother of Runes."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("mother_of_runes", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("mother_of_runes", 4)
+
     @staticmethod
-    def name() -> str: return "Mother of Runes"
+    def name() -> str:  # noqa: D102
+        return "Mother of Runes"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.W
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.W
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.W: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.W: 1}
+
     @staticmethod
-    def subtype() -> str: return "Human Cleric"
+    def subtype() -> str:  # noqa: D102
+        return "Human Cleric"
+
     @staticmethod
-    def power() -> int: return 1
+    def power() -> int:  # noqa: D102
+        return 1
+
     @staticmethod
-    def toughness() -> int: return 1
+    def toughness() -> int:  # noqa: D102
+        return 1
+
 
 class DarkRitual(InstantCard):
+    """Dark Ritual."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("dark_ritual", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("dark_ritual", 4)
+
     @staticmethod
-    def name() -> str: return "Dark Ritual"
+    def name() -> str:  # noqa: D102
+        return "Dark Ritual"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.B: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.B: 1}
+
 
 class Terror(InstantCard):
+    """Terror."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("terror", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("terror", 4)
+
     @staticmethod
-    def name() -> str: return "Terror"
+    def name() -> str:  # noqa: D102
+        return "Terror"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.B: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.B: 1, Card.Color.C: 1}
+
 
 class DoomBlade(InstantCard):
+    """Doom Blade."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("doom_blade", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("doom_blade", 4)
+
     @staticmethod
-    def name() -> str: return "Doom Blade"
+    def name() -> str:  # noqa: D102
+        return "Doom Blade"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.B: 1, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.B: 1, Card.Color.C: 1}
+
 
 class RaiseDead(SorceryCard):
+    """Raise Dead."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("raise_dead", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("raise_dead", 4)
+
     @staticmethod
-    def name() -> str: return "Raise Dead"
+    def name() -> str:  # noqa: D102
+        return "Raise Dead"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.B: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.B: 1}
+
 
 class MindRot(SorceryCard):
+    """Mind Rot."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("mind_rot", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("mind_rot", 4)
+
     @staticmethod
-    def name() -> str: return "Mind Rot"
+    def name() -> str:  # noqa: D102
+        return "Mind Rot"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.B: 1, Card.Color.C: 2}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.B: 1, Card.Color.C: 2}
+
 
 class GrayMerchantOfAsphodel(CreatureCard):
+    """Gray Merchant of Asphodel."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("gray_merchant", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("gray_merchant", 4)
+
     @staticmethod
-    def name() -> str: return "Gray Merchant of Asphodel"
+    def name() -> str:  # noqa: D102
+        return "Gray Merchant of Asphodel"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.B: 2, Card.Color.C: 3}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.B: 2, Card.Color.C: 3}
+
     @staticmethod
-    def subtype() -> str: return "Zombie"
+    def subtype() -> str:  # noqa: D102
+        return "Zombie"
+
     @staticmethod
-    def power() -> int: return 2
+    def power() -> int:  # noqa: D102
+        return 2
+
     @staticmethod
-    def toughness() -> int: return 4
+    def toughness() -> int:  # noqa: D102
+        return 4
+
 
 class Gravedigger(CreatureCard):
+    """Gravedigger."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("gravedigger", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("gravedigger", 4)
+
     @staticmethod
-    def name() -> str: return "Gravedigger"
+    def name() -> str:  # noqa: D102
+        return "Gravedigger"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.B: 1, Card.Color.C: 3}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.B: 1, Card.Color.C: 3}
+
     @staticmethod
-    def subtype() -> str: return "Zombie"
+    def subtype() -> str:  # noqa: D102
+        return "Zombie"
+
     @staticmethod
-    def power() -> int: return 2
+    def power() -> int:  # noqa: D102
+        return 2
+
     @staticmethod
-    def toughness() -> int: return 2
+    def toughness() -> int:  # noqa: D102
+        return 2
+
 
 class RoyalAssassin(CreatureCard):
+    """Royal Assassin."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("royal_assassin", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("royal_assassin", 4)
+
     @staticmethod
-    def name() -> str: return "Royal Assassin"
+    def name() -> str:  # noqa: D102
+        return "Royal Assassin"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.B: 2, Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.B: 2, Card.Color.C: 1}
+
     @staticmethod
-    def subtype() -> str: return "Human Assassin"
+    def subtype() -> str:  # noqa: D102
+        return "Human Assassin"
+
     @staticmethod
-    def power() -> int: return 1
+    def power() -> int:  # noqa: D102
+        return 1
+
     @staticmethod
-    def toughness() -> int: return 1
+    def toughness() -> int:  # noqa: D102
+        return 1
+
 
 class BlackKnight(CreatureCard):
+    """Black Knight."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("black_knight", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("black_knight", 4)
+
     @staticmethod
-    def name() -> str: return "Black Knight"
+    def name() -> str:  # noqa: D102
+        return "Black Knight"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.B
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.B
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.B: 2}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.B: 2}
+
     @staticmethod
-    def subtype() -> str: return "Human Knight"
+    def subtype() -> str:  # noqa: D102
+        return "Human Knight"
+
     @staticmethod
-    def power() -> int: return 2
+    def power() -> int:  # noqa: D102
+        return 2
+
     @staticmethod
-    def toughness() -> int: return 2
+    def toughness() -> int:  # noqa: D102
+        return 2
+
 
 class SolRing(ArtifactCard):
+    """Sol Ring."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("sol_ring", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("sol_ring", 4)
+
     @staticmethod
-    def name() -> str: return "Sol Ring"
+    def name() -> str:  # noqa: D102
+        return "Sol Ring"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.C
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.C
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.C: 1}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.C: 1}
+
 
 class Ornithopter(ArtifactCreatureCard):
+    """Ornithopter."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("ornithopter", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("ornithopter", 4)
+
     @staticmethod
-    def name() -> str: return "Ornithopter"
+    def name() -> str:  # noqa: D102
+        return "Ornithopter"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.C
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.C
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {}
+
     @staticmethod
-    def subtype() -> str: return "Thopter"
+    def subtype() -> str:  # noqa: D102
+        return "Thopter"
+
     @staticmethod
-    def power() -> int: return 0
+    def power() -> int:  # noqa: D102
+        return 0
+
     @staticmethod
-    def toughness() -> int: return 2
+    def toughness() -> int:  # noqa: D102
+        return 2
+
 
 class Millstone(ArtifactCard):
+    """Millstone."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("millstone", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("millstone", 4)
+
     @staticmethod
-    def name() -> str: return "Millstone"
+    def name() -> str:  # noqa: D102
+        return "Millstone"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.C
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.C
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.C: 2}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.C: 2}
+
 
 class RodOfRuin(ArtifactCard):
+    """Rod of Ruin."""
+
     @staticmethod
-    def _ids() -> set[str]: return _gen_ids("rod_of_ruin", 4)
+    def _ids() -> set[str]:
+        return Card._gen_ids("rod_of_ruin", 4)
+
     @staticmethod
-    def name() -> str: return "Rod of Ruin"
+    def name() -> str:  # noqa: D102
+        return "Rod of Ruin"
+
     @staticmethod
-    def color() -> Card.Color: return Card.Color.C
+    def color() -> Card.Color:  # noqa: D102
+        return Card.Color.C
+
     @staticmethod
-    def cost() -> dict[Card.Color, int]: return {Card.Color.C: 4}
+    def cost() -> dict[Card.Color, int]:  # noqa: D102
+        return {Card.Color.C: 4}

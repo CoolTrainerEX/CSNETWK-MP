@@ -6,8 +6,9 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field, TypeAdapter
 
 from packages.shared.cards import Card, CardID, CreatureCardID, LandCardID
-from packages.shared.game import ID, CombatStep, GamePhase, State
+from packages.shared.game import CombatStep, GamePhase, State
 from packages.shared.player import PlayerID
+from packages.shared.types import ID
 
 
 class Type(StrEnum):
@@ -210,9 +211,7 @@ class GameStateUpdate(BaseModel):
         phase: Literal[State.MULLIGAN] | GamePhase | CombatStep
         priority_holder: PlayerID | None
         life_totals: dict[PlayerID, int]
-        battlefield: dict[
-            PlayerID, set[__BattlefieldCard | __BattlefieldCreatureCard]
-        ]
+        battlefield: dict[PlayerID, set[__BattlefieldCard | __BattlefieldCreatureCard]]
         graveyard: dict[PlayerID, set[CardID]]
         hand: dict[PlayerID, set[CardID]]
         hand_counts: dict[PlayerID, int]

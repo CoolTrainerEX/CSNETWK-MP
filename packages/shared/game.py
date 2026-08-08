@@ -6,9 +6,6 @@ from enum import StrEnum, auto
 from packages.shared.player import Player
 
 
-ID = str
-
-
 class State(StrEnum):
     """Game states."""
 
@@ -70,7 +67,7 @@ class CombatStep(StrEnum):
 
 class Game(ABC):
     """Game instance.
-    
+
     Attributes:
         _seq_num (int): Sequence number
         _players list[Player]: List of players

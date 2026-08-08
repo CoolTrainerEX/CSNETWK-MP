@@ -33,13 +33,7 @@ class ClientPlayer(Player):
 class CurrentClientPlayer(ClientPlayer):
     """Current player."""
 
-    def __init__(self, id: PlayerID, library_count: int) -> None:
-        """Creates the current player.
-
-        Args:
-            id (PlayerID): Player ID
-            library_count (int): Library count
-        """
+    def __init__(self, id: PlayerID, library_count: int) -> None:  # noqa: D107
         super().__init__(id, library_count)
         self.__hand: set[Card] = set()
 
@@ -56,13 +50,7 @@ class CurrentClientPlayer(ClientPlayer):
 class OpponentClientPlayer(ClientPlayer):
     """Opponent player."""
 
-    def __init__(self, id: PlayerID, library_count: int) -> None:
-        """Creates the current player.
-
-        Args:
-            id (PlayerID): Player ID
-            library_count (int): Library count
-        """
+    def __init__(self, id: PlayerID, library_count: int) -> None:  # noqa: D107
         super().__init__(id, library_count)
         self.__hand_count = 0
 
@@ -81,8 +69,8 @@ class ClientGame(Game):
 
     def __init__(self) -> None:
         """Creates a client game instance."""
-        self.__input = Input()
         super().__init__()
+        self.__input = Input()
 
     @property
     def input(self):

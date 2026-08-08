@@ -3,7 +3,7 @@
 from abc import ABC
 
 from packages.shared.cards import Card
-from packages.shared.game import ID
+from packages.shared.types import ID
 
 PlayerID = ID
 
