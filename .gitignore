@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Documentation and specifications
+*.pdf
+*.csv
+
