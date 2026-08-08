@@ -44,11 +44,11 @@ class Card(ABC):
 
     def __init_subclass__(cls, **kwargs) -> None:
         """Registers cards into the master registry."""
+        super().__init_subclass__(**kwargs)
+
         if not isabstract(cls):
             for id in cls._ids():
                 cls.__registry[id] = cls
-
-        return super().__init_subclass__(**kwargs)
 
     @staticmethod
     @abstractmethod
@@ -180,6 +180,10 @@ class ArtifactCard(TapCard):
 class CreatureCard(TapCard, Subtype):
     """Creature Card."""
 
+    def __init__(self, id: ID) -> None:  # noqa: D107
+        super().__init__(id)
+        self._summoning_sick = False
+
     @staticmethod
     @abstractmethod
     def power() -> int:  # noqa: D102
@@ -199,6 +203,15 @@ class CreatureCard(TapCard, Subtype):
             int: Creature toughnesss
         """
         pass
+
+    @property
+    def summoning_sick(self):
+        """Cast creature summoning sickness.
+
+        Returns:
+            bool: Summoning sickness
+        """
+        return self._summoning_sick
 
 
 class ArtifactCreatureCard(ArtifactCard, CreatureCard):
