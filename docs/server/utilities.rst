@@ -1,7 +1,7 @@
-end\_step module
+utilities module
 ================
 
-.. automodule:: server.states.game_phases.end_step
+.. automodule:: utilities
    :members:
    :show-inheritance:
    :undoc-members:

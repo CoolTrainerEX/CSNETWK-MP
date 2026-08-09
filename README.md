@@ -54,6 +54,7 @@ uv run client --verbose
 
 - NotebookLM was used to understand the game rules and flow.
 - Used Google AI Studio as an additional reference to get ideas when figuring out and understanding the logic.
+- Gemini AI was used to verify consistency and documentation (comments). Also, used to help identifying certain logic in code-writing. 
 
 ## Limitations and Deviations
 
