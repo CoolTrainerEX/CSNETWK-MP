@@ -10,13 +10,12 @@ def main():
     """Main client function."""
     try:
         parser = ArgumentParser(description="CSNETWK-MP Client")
+        game = ClientGame()
 
         parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
-        asyncio.run(
-            ClientConnection(ClientGame(), parser.parse_args().verbose).connect()
-        )
+        asyncio.run(ClientConnection(game, parser.parse_args().verbose).connect())
     except KeyboardInterrupt:
-        pass
+        game.concede()
 
 
 if __name__ == "__main__":

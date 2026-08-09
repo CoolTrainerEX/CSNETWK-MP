@@ -1,18 +1,19 @@
 """Client state."""
 
-from typing import Sequence
-
 from prompt_toolkit.formatted_text import ANSI, to_formatted_text
 from prompt_toolkit.patch_stdout import patch_stdout
-from questionary import checkbox, select, text
+from questionary import checkbox, confirm, select, text
+from rich import print
 
 from packages.client.input import Input, rich_parse
 from packages.shared.cards import (
     BattlefieldCard,
     Card,
+    CardID,
     CreatureCard,
     CreatureCardID,
     LandCard,
+    Trigger,
 )
 from packages.shared.game import CombatStep, Game, GamePhase, State
 from packages.shared.pdu import (
@@ -20,12 +21,17 @@ from packages.shared.pdu import (
     ActivateAbility,
     AssignDamageOrder,
     CastSpell,
+    Concede,
     DeclareAttackers,
     DeclareBlockers,
+    Discard,
     MulliganChoice,
     PlayLand,
     PlayerReady,
     PriorityPass,
+    TriggerChoiceResponse,
+    TriggerID,
+    TriggerOrderResponse,
     Type,
 )
 from packages.shared.player import Player, PlayerID
@@ -158,6 +164,18 @@ class ClientGame(Game):
         """Get game input."""
         return self.__input
 
+    def concede(self):
+        """Runs the concede input."""
+        # TODO
+        self.input.run(ClientGame.__concede())
+
+    @staticmethod
+    def __concede(seq_num: int, player_id: PlayerID):
+        async def prompt():
+            return Concede(seq_num=seq_num, player_id=player_id)
+
+        return prompt
+
     def _parse_phase(self, phase_value: str):
         for enum_type in (State, GamePhase, CombatStep):
             try:
@@ -241,16 +259,6 @@ class ClientGame(Game):
         """Initial player ready prompt."""
         # TODO Set seq_num
         self.input.run(ClientGame.__ready_prompt(1))
-        self.input.run(
-            ClientGame.__assign_damage_order(
-                1,
-                {
-                    Card.from_id("ornithopter_001")("ornithopter_001"): {
-                        Card.from_id("ornithopter_002")("ornithopter_002")
-                    },
-                },
-            ),
-        )
 
     # TODO
     @staticmethod
@@ -324,8 +332,8 @@ class ClientGame(Game):
     @staticmethod
     def __priority(
         seq_num: int,
-        spells: dict[Card, tuple[int, set[ID]]],
-        abilities: dict[BattlefieldCard, list[tuple[int, set[ID]]]],
+        spells: dict[Card, tuple[int, set[ID]]] = {},
+        abilities: dict[BattlefieldCard, list[tuple[int, set[ID]]]] = {},
     ):
         """Priority action.
 
@@ -450,53 +458,59 @@ class ClientGame(Game):
     # TODO
     @staticmethod
     def __declare_attackers(
-        seq_num: int, attackers: set[CreatureCard], opponent_id: PlayerID
+        seq_num: int, opponent_id: PlayerID, attackers: set[CreatureCard] = set()
     ):
         """Declare attackers prompt.
 
         Args:
             seq_num (int): Sequence number
-            attackers (set[CreatureCard]): Set of available atacker choices
+            attackers (set[CreatureCard]): Set of available attacker choices
             opponent_id (PlayerID): Target player ID
         """
 
         async def prompt():
-            return [
-                DeclareAttackers(
-                    seq_num=seq_num,
-                    attackers={
-                        DeclareAttackers.Attacker(
-                            creature_id=attacker, target=opponent_id
-                        )
-                        for attacker in await checkbox(
-                            "Declare attackers",
-                            [
-                                {
-                                    "name": to_formatted_text(
-                                        ANSI(rich_parse(f"\n{attacker}"))
-                                    ),
-                                    "value": attacker.id,
-                                }
-                                for attacker in attackers
-                            ],
-                        ).ask_async()
-                    },
-                )
-            ]
+            return (
+                [
+                    DeclareAttackers(
+                        seq_num=seq_num,
+                        attackers={
+                            DeclareAttackers.Attacker(
+                                creature_id=attacker, target=opponent_id
+                            )
+                            for attacker in await checkbox(
+                                "Declare attackers",
+                                [
+                                    {
+                                        "name": to_formatted_text(
+                                            ANSI(rich_parse(f"\n{attacker}"))
+                                        ),
+                                        "value": attacker.id,
+                                    }
+                                    for attacker in attackers
+                                ],
+                            ).ask_async()
+                        },
+                    )
+                ]
+                if attackers
+                else []
+            )
 
         return prompt
 
     # TODO
     @staticmethod
     def __declare_blockers(
-        seq_num: int, blockers: dict[CreatureCard, set[CreatureCard]]
+        seq_num: int, blockers: dict[CreatureCard, set[CreatureCard]] | None = None
     ):
         """Declare blockers prompt.
 
         Args:
             seq_num (int): Sequence number
-            blockers (dict[CreatureCard, set[CreatureCard]]): Available blockers and set of blockable attackers
+            blockers (dict[CreatureCard, set[CreatureCard]] | None): Available blockers and set of blockable attackers
         """
+        if blockers is None:
+            blockers = {}
 
         async def prompt():
             blockers_set: set[DeclareBlockers.Blocker] = set()
@@ -549,8 +563,11 @@ class ClientGame(Game):
     # TODO
     @staticmethod
     def __assign_damage_order(
-        seq_num: int, attackers: dict[CreatureCard, set[CreatureCard]]
+        seq_num: int, attackers: dict[CreatureCard, set[CreatureCard]] | None = None
     ):
+        if attackers is None:
+            attackers = {}
+
         async def prompt():
             damage_orders: list[AssignDamageOrder] = []
 
@@ -567,9 +584,6 @@ class ClientGame(Game):
                         for attacker in attackers.keys()
                     ],
                 ).ask_async()
-
-                if not isinstance(attacker, CreatureCard):
-                    break
 
                 blockers: list[CreatureCardID] = []
 
@@ -601,6 +615,104 @@ class ClientGame(Game):
                 del attackers[attacker]
 
             return damage_orders
+
+        return prompt
+
+    # TODO
+    @staticmethod
+    def __trigger_order(seq_num: int, triggers: dict[TriggerID, Trigger] | None = None):
+        """Assign trigger order.
+
+        Args:
+            seq_num (int): Sequence number
+            triggers (dict[TriggerID,Trigger] | None): List of triggers and card origins
+        """
+        if triggers is None:
+            triggers = {}
+
+        async def prompt():
+            trigger_order: list[TriggerID] = []
+            while triggers:
+                trigger = await select(
+                    "Trigger order",
+                    [
+                        {
+                            "name": to_formatted_text(
+                                ANSI(rich_parse(card.trigger_details()))
+                            ),
+                            "value": id,
+                        }
+                        for id, card in triggers.items()
+                    ],
+                    instruction="Select the next trigger.",
+                ).ask_async()
+
+                trigger_order.append(trigger)
+
+                del triggers[trigger]
+
+            return [
+                TriggerOrderResponse(seq_num=seq_num, ordered_trigger_ids=trigger_order)
+            ]
+
+        return prompt
+
+    # TODO
+    @staticmethod
+    def __trigger_choice(
+        seq_num: int, trigger: tuple[TriggerID, Trigger], targets: set[ID] = set()
+    ):
+        async def prompt():
+            print(trigger[1].trigger_details())
+            if await confirm("Activate trigger?").ask_async():
+                if targets:
+                    target = await select("Select target", list(targets)).ask_async()
+                else:
+                    target = None
+
+                return [
+                    TriggerChoiceResponse(
+                        seq_num=seq_num,
+                        trigger_id=trigger[0],
+                        accept=True,
+                        chosen_target=target,
+                    )
+                ]
+            else:
+                return [
+                    TriggerChoiceResponse(
+                        seq_num=seq_num, trigger_id=trigger[0], accept=False
+                    )
+                ]
+
+        return prompt
+
+    # TODO
+    @staticmethod
+    def __discard(seq_num: int, hand: set[Card] | None = None):
+        if hand is None:
+            hand = set()
+
+        async def prompt():
+            discard_set: set[CardID] = set()
+
+            while len(hand) > 7:
+                discard: Card = await select(
+                    "Discard",
+                    [
+                        {
+                            "name": to_formatted_text(ANSI(rich_parse(f"\n{card}"))),
+                            "value": card,
+                        }
+                        for card in hand
+                    ],
+                    instruction="Discard until you have seven cards.",
+                ).ask_async()
+
+                discard_set.add(discard.id)
+                hand.remove(discard)
+
+            return [Discard(seq_num=seq_num, card_ids=discard_set)]
 
         return prompt
 

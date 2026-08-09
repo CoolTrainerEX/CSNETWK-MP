@@ -438,7 +438,7 @@ class TriggerOrderResponse(BaseModel):
 
     type: Literal[Type.TRIGGER_ORDER_RESPONSE] = Type.TRIGGER_ORDER_RESPONSE
     seq_num: int
-    ordered_trigger_ids: set[TriggerID]
+    ordered_trigger_ids: list[TriggerID]
 
 
 class TriggerChoice(BaseModel):
@@ -485,7 +485,7 @@ class TriggerChoiceResponse(BaseModel):
     seq_num: int
     trigger_id: TriggerID
     accept: bool
-    chosen_target: ID | None
+    chosen_target: ID | None = None
 
 
 class StackResolve(BaseModel):
