@@ -1,8 +1,8 @@
 """Async user input."""
 
-from asyncio import Event, Future, Queue, create_task, get_running_loop
+from asyncio import Event, create_task
 from collections.abc import Callable
-from typing import Any, Sequence
+from typing import Sequence
 
 from prompt_toolkit import PromptSession
 

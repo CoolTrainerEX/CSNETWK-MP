@@ -617,7 +617,7 @@ class DeclareBlockers(BaseModel):
                 bool: Is equal
             """
             return (
-                isinstance(value, DeclareAttackers.__Attacker)
+                isinstance(value, DeclareBlockers.__Blocker)
                 and self.creature_id == value.creature_id
             )
 

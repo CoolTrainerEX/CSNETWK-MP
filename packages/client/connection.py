@@ -1,6 +1,6 @@
 """Client connection module."""
 
-from asyncio import IncompleteReadError, TaskGroup, open_connection, sleep, wait_for
+from asyncio import IncompleteReadError, TaskGroup, open_connection, sleep
 from time import time
 
 from packages.client.game import ClientGame
