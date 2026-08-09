@@ -2,7 +2,6 @@
 
 from argparse import ArgumentParser
 import asyncio
-
 from packages.client.connection import ClientConnection
 from packages.client.game import ClientGame
 

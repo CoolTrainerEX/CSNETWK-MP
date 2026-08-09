@@ -2,9 +2,10 @@
 
 from asyncio import Event, create_task
 from collections.abc import Callable
-from typing import Sequence
+from typing import Any, Coroutine, Sequence
 
-from prompt_toolkit import PromptSession
+from rich.console import Console
+
 
 from packages.shared.pdu import PDU
 
@@ -14,38 +15,24 @@ class Input(object):
 
     def __init__(self):
         """Creates a new input session."""
-        self.__session = PromptSession()
         self.__event = Event()
 
-    def prompt(self, prompts: list[str], parse: Callable[[list[str]], Sequence[PDU]]):
-        """Starts an async prompt task in the background.
+    def run(self, func: Callable[[], Coroutine[Any, Any, Sequence[PDU]]]):
+        """Run the async input function.
 
         Args:
-            prompts (str, optional): Text to display
-            parse (Callable[[str], PDU]): Parsing function to send PDU
+            func (Callable[[], Coroutine[Any, Any, Sequence[PDU]]]): Input function
         """
-        self.interrupt()
-
-        self.__prompts = prompts
-        self.__parse = parse
-        self.__task = create_task(self.__prompt_worker())
-
-    async def __prompt_worker(self):
-        result = []
-
-        for prompt in self.__prompts:
-            result.append(await self.__session.prompt_async(prompt))
-
-        self.__result = self.__parse(result)
-
-    def interrupt(self):
-        """Immediately cancels and erases the active prompt."""
         try:
-            if self.__task and not self.__task.done():
-                self.__task.cancel()
-                self.__task = None
+            self.__task.cancel()
         except AttributeError:
             pass
+
+        self.__task = create_task(self.__worker(func))
+
+    async def __worker(self, func: Callable[[], Coroutine[Any, Any, Sequence[PDU]]]):
+        self.__result = await func()
+        self.__event.set()
 
     async def subscribe(self):
         """Yields user inputs as they are completed."""
@@ -53,3 +40,20 @@ class Input(object):
             await self.__event.wait()
             yield self.__result
             self.__event.clear()
+
+
+def rich_parse(text: str):
+    """Parse rich text.
+
+    Args:
+        text (str): text to parse
+
+    Returns:
+        str: Parsed text
+    """
+    console = Console()
+
+    with console.capture() as capture:
+        console.print(text)
+
+    return capture.get()

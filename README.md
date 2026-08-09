@@ -4,6 +4,7 @@
 
 1. Install [uv](https://docs.astral.sh/uv/).
 2. Go to the project directory.
+3. `uv sync --all-packages`
 
 ### Server
 

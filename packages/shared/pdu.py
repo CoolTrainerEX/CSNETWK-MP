@@ -340,7 +340,7 @@ class ActivateAbility(BaseModel):
         cost_payment (__CostPayment):
     """
 
-    class __CostPayment(BaseModel):
+    class CostPayment(BaseModel):
         """Ability cost.
 
         Attributes:
@@ -357,7 +357,7 @@ class ActivateAbility(BaseModel):
     source_id: CardID
     ability_index: int
     targets: set[ID]
-    cost_payment: __CostPayment
+    cost_payment: CostPayment
 
 
 StackID = ID

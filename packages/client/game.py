@@ -1,10 +1,24 @@
 """Client state."""
 
-from packages.client.input import Input
-from packages.shared.cards import Card
+from prompt_toolkit.formatted_text import ANSI, to_formatted_text
+from prompt_toolkit.patch_stdout import patch_stdout
+from questionary import checkbox, select, text
+
+from packages.client.input import Input, rich_parse
+from packages.shared.cards import BattlefieldCard, Card, LandCard
 from packages.shared.game import CombatStep, Game, GamePhase, State
-from packages.shared.pdu import PDU, Type
+from packages.shared.pdu import (
+    PDU,
+    ActivateAbility,
+    CastSpell,
+    MulliganChoice,
+    PlayLand,
+    PlayerReady,
+    PriorityPass,
+    Type,
+)
 from packages.shared.player import Player, PlayerID
+from packages.shared.types import ID
 
 
 class ClientPlayer(Player):
@@ -214,7 +228,226 @@ class ClientGame(Game):
 
     def ready(self):
         """Initial player ready prompt."""
-        pass
+        # TODO Set seq_num
+        self.input.run(ClientGame.__ready_prompt(1))
+        self.input.run(
+            ClientGame.__priority(
+                1,
+                {
+                    Card.from_id("mountain_001")("mountain_001"): (
+                        1,
+                        {"asd", "asdasdsf"},
+                    ),
+                    Card.from_id("swamp_001")("swamp_001"): (2, {"asd", "asdasdsf"}),
+                },
+                {
+                    Card.from_id("llanowar_elves_001")("llanowar_elves_001"): [
+                        (
+                            1,
+                            {"asd", "asdasdsf"},
+                        )
+                    ],
+                    Card.from_id("troll_ascetic_001")("troll_ascetic_001"): [
+                        (2, {"asd", "asdasdsf"})
+                    ],
+                },
+            )
+        )
+
+    # TODO
+    @staticmethod
+    def __ready_prompt(seq_num: int):
+        async def prompt():
+            player_id = ""
+            deck_list = None
+
+            with patch_stdout():
+                player_id = await text(
+                    "Player ID",
+                    validate=lambda text: text != "" or "Must not be empty.",  # type: ignore
+                ).ask_async()
+
+                deck_list = await checkbox(
+                    "Cards",
+                    [
+                        {
+                            "name": to_formatted_text(
+                                ANSI(rich_parse(f"\n{card(id)}"))
+                            ),
+                            "value": id,
+                        }
+                        for id, card in Card.registry().items()
+                    ],
+                    instruction="Select cards for the deck.",
+                    validate=lambda choices: (
+                        len(choices) != 0 or "Choose at least one."
+                    ),
+                ).ask_async()
+
+            return [
+                PlayerReady(seq_num=1, player_id=player_id, deck_list=set(deck_list))
+            ]
+
+        return prompt
+
+    # TODO
+    @staticmethod
+    def __mulligan_prompt(seq_num: int, cards: set[Card], num_bottom: int):
+        async def prompt():
+            with patch_stdout():
+                cards_to_bottom = await checkbox(
+                    "Mulligan",
+                    [
+                        {
+                            "name": to_formatted_text(ANSI(rich_parse(f"\n{card}"))),
+                            "value": card.id,
+                        }
+                        for card in cards
+                    ],
+                    instruction=f"Choose {num_bottom} cards to place on the bottom of the library or choose none to keep.",
+                    validate=lambda choices: (
+                        len(choices) == 0
+                        or len(choices) == num_bottom
+                        or f"Choose {num_bottom} or none."
+                    ),
+                ).ask_async()
+
+            return [
+                MulliganChoice(
+                    seq_num=seq_num,
+                    keep=len(cards_to_bottom) == 0,
+                    cards_to_bottom=cards_to_bottom,
+                )
+            ]
+
+        return prompt
+
+    # TODO
+    @staticmethod
+    def __priority(
+        seq_num: int,
+        spells: dict[Card, tuple[int, set[ID]]],
+        abilities: dict[BattlefieldCard, list[tuple[int, set[ID]]]],
+    ):
+        """Priority action.
+
+        Args:
+            seq_num (int): Sequence number
+            spells (dict[Card, tuple[int, set[ID]]]): Cards to cast (including land) and number of targets to choose with set of available targets. Empty if no targets.
+            abilities (dict[BattlefieldCard, list[tuple[int, set[ID]]]]): Cards with available abilities and number of targets with set of available targets indexed to the ability index.
+        """
+
+        async def prompt():
+            match await select(
+                "Gained priority.",
+                [
+                    choice
+                    for choice in [
+                        "Cast spell" if spells else None,
+                        "Activate ability" if abilities else None,
+                        "Pass",
+                    ]
+                    if choice
+                ],
+            ).ask_async():
+                case "Cast spell":
+                    spell: Card = await select(
+                        "Cast spell",
+                        [
+                            {
+                                "name": to_formatted_text(
+                                    ANSI(rich_parse(f"\n{card}"))
+                                ),
+                                "value": card,
+                            }
+                            for card in spells.keys()
+                        ],
+                    ).ask_async()
+
+                    if spells[spell][1]:
+                        targets = set(
+                            await checkbox(
+                                "Select target",
+                                list(spells[spell][1]),
+                                instruction=f"Choose {spells[spell][0]} targets.",
+                                validate=lambda choices: (
+                                    len(choices) == spells[spell][0]
+                                    or f"Choose {spells[spell][0]} targets."
+                                ),
+                            ).ask_async()
+                        )
+                    else:
+                        targets: set[ID] = set()
+
+                    if isinstance(spell, LandCard):
+                        return [PlayLand(seq_num=seq_num, card_id=spell.id)]
+
+                    return [
+                        CastSpell(
+                            seq_num=seq_num,
+                            card_id=spell.id,
+                            targets=targets,
+                            mana_payment=spell.cast_details().mana_cost,
+                        )
+                    ]
+                case "Activate ability":
+                    card: BattlefieldCard = await select(
+                        "Activate ability",
+                        [
+                            {
+                                "name": to_formatted_text(
+                                    ANSI(rich_parse(f"\n{card}"))
+                                ),
+                                "value": card,
+                            }
+                            for card in abilities.keys()
+                        ],
+                    ).ask_async()
+
+                    ability: int = await select(
+                        "Select ability",
+                        [
+                            {
+                                "name": to_formatted_text(
+                                    ANSI(rich_parse(ability.text))
+                                ),
+                                "value": index,
+                            }
+                            for index, ability in enumerate(card.abilities_details())
+                        ],
+                    ).ask_async()
+
+                    if abilities[card][ability][1]:
+                        targets = set(
+                            await checkbox(
+                                "Select target",
+                                list(abilities[card][ability][1]),
+                                instruction=f"Choose {abilities[card][ability][0]} targets.",
+                                validate=lambda choices: (
+                                    len(choices) == abilities[card][ability][0]
+                                    or f"Choose {abilities[card][ability][0]} targets."
+                                ),
+                            ).ask_async()
+                        )
+                    else:
+                        targets: set[ID] = set()
+
+                    return [
+                        ActivateAbility(
+                            seq_num=seq_num,
+                            source_id=card.id,
+                            ability_index=ability,
+                            targets=targets,
+                            cost_payment=ActivateAbility.CostPayment(  # type: ignore
+                                tap=bool(card.abilities_details()[ability].tap_cost),
+                                mana=card.abilities_details()[ability].mana_cost,
+                            ),
+                        )
+                    ]
+                case _:
+                    return [PriorityPass(seq_num=seq_num)]
+
+        return prompt
 
     def _update_players(self, state):
         if not hasattr(state, "life_totals"):

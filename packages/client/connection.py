@@ -9,7 +9,6 @@ from packages.shared.pdu import Ping, Type
 
 PING_INTERVAL = 30
 PING_TIMEOUT = 10
-PROMPT_TIMEOUT = 5
 
 assert PING_INTERVAL > PING_TIMEOUT
 

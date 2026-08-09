@@ -6,12 +6,9 @@ from enum import StrEnum, auto
 from inspect import isabstract
 from typing import Literal
 
-from rich.console import Console
-
 
 from packages.shared.types import ID
 
-console = Console()
 
 CardID = ID
 CreatureCardID = CardID
@@ -36,19 +33,30 @@ class Card(ABC):
         C = "x"
 
         @staticmethod
-        def format_colorless(num: int):
-            """Format a number for colorless.
+        def format_color(value: str, color: Card.Color):
+            """Format a value for color.
 
             Args:
-                num (int): Colorless number
-
+                value (str): Colored value string
+                color (Card.Color): Color to format with
             Returns:
                 str: Formatted string
             """
-            with console.capture() as capture:
-                console.print(f"[bold grey30 on grey70] {num} [/]")
+            match color:
+                case Card.Color.W:
+                    style = "bold wheat4 on wheat1"
+                case Card.Color.U:
+                    style = "bold bright_blue on dark_blue"
+                case Card.Color.B:
+                    style = "bold white on black"
+                case Card.Color.R:
+                    style = "bold bright_red on dark_red"
+                case Card.Color.G:
+                    style = "bold bright_green on dark_green"
+                case Card.Color.C:
+                    style = "bold grey30 on grey70"
 
-            return capture.get()
+            return f"[{style}]{value}[/]"
 
         def __format__(self, format_spec: str) -> str:
             """Format object.
@@ -61,7 +69,7 @@ class Card(ABC):
             """
             match self:
                 case Card.Color.W:
-                    style = "bold black on white"
+                    style = "bold wheat4 on wheat1"
                 case Card.Color.U:
                     style = "bold bright_blue on dark_blue"
                 case Card.Color.B:
@@ -73,12 +81,7 @@ class Card(ABC):
                 case Card.Color.C:
                     style = "bold grey30 on grey70"
 
-            with console.capture() as capture:
-                console.print(
-                    f"[{style}] {super().__format__(format_spec).upper()} [/]"
-                )
-
-            return capture.get()
+            return f"[{style}] {super().__format__(format_spec).upper()} [/]"
 
     @dataclass
     class AbilityDetails(object):
@@ -89,7 +92,7 @@ class Card(ABC):
             text (str): Ability description
         """
 
-        mana_cost: dict[Card.Color, int] = field(default_factory=dict, compare=False)
+        mana_cost: dict[Card.Color, int] = field(default_factory=dict)
         text: str = field(default="")
 
     def __init__(self, id: CardID) -> None:
@@ -113,6 +116,77 @@ class Card(ABC):
         if not isabstract(cls):
             for id in cls._ids():
                 cls.__registry[id] = cls
+
+    def __format__(self, format_spec: str) -> str:
+        card_type: list[str] = []
+        card_text: list[str] = []
+
+        if isinstance(self, ArtifactCard):
+            card_type.append("Artifact")
+        if isinstance(self, CreatureCard):
+            card_type.append("Creature")
+            card_text.append(
+                " ".join(f"{modifier.title()}." for modifier in self.base_modifiers())
+            )
+        if isinstance(self, EnchantmentCard):
+            card_type.append("Enchantment")
+        if isinstance(self, InstantCard):
+            card_type.append("Instant")
+        if isinstance(self, LandCard):
+            card_type.append("Land")
+        if isinstance(self, SorceryCard):
+            card_type.append("Sorcery")
+        if isinstance(self, Subtype):
+            card_type.append(f"— {self.subtype()}")
+
+        if isinstance(self, Kicker):
+            kicker_cost = " ".join(
+                Card.Color.format_color(f" {amount} ", Card.Color.C)
+                if color == Card.Color.C
+                else " ".join([f"{color}"] * amount)
+                for color, amount in self.cast_details().mana_cost.items()
+            )
+
+            card_text.extend(
+                [
+                    f"Kicker {kicker_cost} [italic](You may pay an additional {kicker_cost} as you cast this spell.)[/]",
+                    self.kicker_details().text,
+                ]
+            )
+        if self.cast_details().text:
+            card_text.append(self.cast_details().text)
+        if isinstance(self, BattlefieldCard):
+            card_text.extend(
+                [
+                    f"{' '.join([Card.Color.format_color(f' {amount} ', Card.Color.C) if color == Card.Color.C else ' '.join([f'{color}'] * amount) for color, amount in ability.mana_cost.items()] + [Card.Color.format_color(' \u21b7 ', Card.Color.C)])}: {ability.text}"
+                    for ability in self.abilities_details()
+                ]
+            )
+        if isinstance(self, Trigger):
+            card_text.append(self.trigger_details())
+
+        return (
+            Card.Color.format_color(
+                f" ---~~~--- \n {self.name()} {' '.join(Card.Color.format_color(f' {amount} ', Card.Color.C) if color == Card.Color.C else ' '.join([f'{color}'] * amount) for color, amount in self.cast_details().mana_cost.items())} \n\n --------- \n {' '.join(card_type)} \n",
+                self.color(),
+            )
+            + f"[black on white]{'\n'.join(card_text)}[/]"
+            + Card.Color.format_color("\n ---(*)--- \n", self.color())
+            + f"{f'    [black on white] {self.power()}/{self.toughness()} [/]' if isinstance(self, CreatureCard) else ''}"
+            + Card.Color.format_color(
+                "\n ---~~~--- ",
+                self.color(),
+            )
+        )
+
+    @staticmethod
+    def registry():
+        """Returns card registry.
+
+        Returns:
+            dict[CardID, type[Card]]: Card registry
+        """
+        return Card.__registry
 
     @staticmethod
     @abstractmethod
@@ -230,7 +304,7 @@ class Kicker(ABC):
 class BattlefieldCard(Card):
     """Card that are placed on the battlefield."""
 
-    @dataclass(unsafe_hash=True)
+    @dataclass()
     class BattlefieldAbilityDetails(Card.AbilityDetails):
         """Ability including tap cost.
 
@@ -238,7 +312,7 @@ class BattlefieldCard(Card):
             tap_cost (Literal[True] | None) Tap cost
         """
 
-        tap_cost: Literal[True] | None = field(default=None, compare=False)
+        tap_cost: Literal[True] | None = field(default=None)
 
     def __init__(self, id: ID) -> None:
         """Creates a battlefield card instance.
@@ -259,13 +333,13 @@ class BattlefieldCard(Card):
         return self._tapped
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldAbilityDetails]:
+    def abilities_details() -> list[BattlefieldAbilityDetails]:
         """Card abilities details.
 
         Returns:
             set[Card.AbilityDetails]: List of abilities details
         """
-        return set()
+        return []
 
 
 class Trigger(ABC):
@@ -408,12 +482,12 @@ class Mountain(LandCard):  # noqa: D101
         return "Basic Mountain"
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text=f"Add {Card.Color.R}.", tap_cost=True
             )
-        }
+        ]
 
 
 class Forest(LandCard):
@@ -440,12 +514,12 @@ class Forest(LandCard):
         return "Basic Forest"
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text=f"Add {Card.Color.G}.", tap_cost=True
             )
-        }
+        ]
 
 
 class Plains(LandCard):
@@ -472,12 +546,12 @@ class Plains(LandCard):
         return "Basic Plains"
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text=f"Add {Card.Color.W}.", tap_cost=True
             )
-        }
+        ]
 
 
 class Island(LandCard):
@@ -504,12 +578,12 @@ class Island(LandCard):
         return "Basic Island"
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text=f"Add {Card.Color.U}.", tap_cost=True
             )
-        }
+        ]
 
 
 class Swamp(LandCard):
@@ -536,12 +610,12 @@ class Swamp(LandCard):
         return "Basic Swamp"
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text=f"Add {Card.Color.B}.", tap_cost=True
             )
-        }
+        ]
 
 
 class LightningBolt(InstantCard):
@@ -839,12 +913,12 @@ class RecklessWurm(CreatureCard):
         return {CreatureCard.Modifier.TRAMPLE}
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 {Card.Color.C: 2, Card.Color.R: 1}, "Madness."
             )
-        }
+        ]
 
 
 class MonasterySwiftspear(Trigger, CreatureCard):
@@ -1015,7 +1089,7 @@ class ManaLeak(InstantCard):
     def cast_details() -> Card.AbilityDetails:  # noqa: D102
         return Card.AbilityDetails(
             {Card.Color.U: 1, Card.Color.C: 1},
-            f"Counter target spell unless its controller pays {Card.Color.format_colorless(3)}.",
+            f"Counter target spell unless its controller pays {Card.Color.format_color(' 3 ', Card.Color.C)}.",
         )
 
 
@@ -1051,12 +1125,12 @@ class MerfolkLooter(CreatureCard):
         return 1
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text="Draw a card, then discard a card.", tap_cost=True
             )
-        }
+        ]
 
 
 class ProdigalSorcerer(CreatureCard):
@@ -1091,12 +1165,12 @@ class ProdigalSorcerer(CreatureCard):
         return 1
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text="Prodigal Sorcerer deals 1 damage to any target.", tap_cost=True
             )
-        }
+        ]
 
 
 class AirElemental(CreatureCard):
@@ -1298,12 +1372,12 @@ class LlanowarElves(CreatureCard):
         return 1
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text=f"Add {Card.Color.G}.", tap_cost=True
             )
-        }
+        ]
 
 
 class ElvishMystic(CreatureCard):
@@ -1338,12 +1412,12 @@ class ElvishMystic(CreatureCard):
         return 1
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text=f"Add {Card.Color.G}.", tap_cost=True
             )
-        }
+        ]
 
 
 class GrizzlyBears(CreatureCard):
@@ -1446,12 +1520,12 @@ class TrollAscetic(CreatureCard):
         return {CreatureCard.Modifier.HEXPROOF}
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 {Card.Color.C: 1, Card.Color.G: 1}, "Regenerate Troll Ascetic."
             )
-        }
+        ]
 
 
 class WallOfStone(CreatureCard):
@@ -1726,13 +1800,13 @@ class MotherOfRunes(CreatureCard):
         return 1
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text="Target creature you control gains protection from the color of your choice until end of turn.",
                 tap_cost=True,
             )
-        }
+        ]
 
 
 class DarkRitual(InstantCard):
@@ -1951,12 +2025,12 @@ class RoyalAssassin(CreatureCard):
         return 1
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text="Destroy target tapped creature.", tap_cost=True
             )
-        }
+        ]
 
 
 class BlackKnight(Trigger, CreatureCard):
@@ -2019,12 +2093,12 @@ class SolRing(ArtifactCard):
         return Card.AbilityDetails({Card.Color.C: 1}, "")
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 text=f"Tap: Add {Card.Color.C} {Card.Color.C}.", tap_cost=True
             )
-        }
+        ]
 
 
 class Ornithopter(ArtifactCreatureCard):
@@ -2083,14 +2157,14 @@ class Millstone(ArtifactCard):
         return Card.AbilityDetails({Card.Color.C: 2}, "")
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 {Card.Color.C: 2},
                 "Target player mills 2 cards (puts top 2 cards of their library into their graveyard).",
                 True,
             )
-        }
+        ]
 
 
 class RodOfRuin(ArtifactCard):
@@ -2113,9 +2187,9 @@ class RodOfRuin(ArtifactCard):
         return Card.AbilityDetails({Card.Color.C: 4}, "")
 
     @staticmethod
-    def abilities_details() -> set[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
-        return {
+    def abilities_details() -> list[BattlefieldCard.BattlefieldAbilityDetails]:  # noqa: D102
+        return [
             BattlefieldCard.BattlefieldAbilityDetails(
                 {Card.Color.C: 3}, "Rod of Ruin deals 1 damage to any target.", True
             )
-        }
+        ]
