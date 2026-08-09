@@ -1,6 +1,6 @@
 """Handles priority window and action PDUs."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from packages.shared.pdu import (
     PDU,
