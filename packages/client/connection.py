@@ -1,7 +1,15 @@
 """Client connection module."""
 
-from asyncio import IncompleteReadError, TaskGroup, open_connection, sleep
+from asyncio import (
+    CancelledError,
+    IncompleteReadError,
+    TaskGroup,
+    open_connection,
+    sleep,
+)
 from time import time
+
+from rich import print
 
 from packages.client.game import ClientGame
 from packages.shared.connection import HOST, PORT, write, read
@@ -38,6 +46,9 @@ class ClientConnection(object):
                 tg.create_task(self.__handle_write())
                 tg.create_task(self.__ping())
                 tg.create_task(self.__handle_read())
+        except* KeyboardInterrupt, CancelledError:
+            await write(self.__game.concede, self.__writer, self.__verbose)
+            print("[bold blue]Conceded[/]")
         except* (
             IncompleteReadError,
             ConnectionRefusedError,

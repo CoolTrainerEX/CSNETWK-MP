@@ -8,14 +8,10 @@ from packages.client.game import ClientGame
 
 def main():
     """Main client function."""
-    try:
-        parser = ArgumentParser(description="CSNETWK-MP Client")
-        game = ClientGame()
+    parser = ArgumentParser(description="CSNETWK-MP Client")
 
-        parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
-        asyncio.run(ClientConnection(game, parser.parse_args().verbose).connect())
-    except KeyboardInterrupt:
-        game.concede()
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode")
+    asyncio.run(ClientConnection(ClientGame(), parser.parse_args().verbose).connect())
 
 
 if __name__ == "__main__":

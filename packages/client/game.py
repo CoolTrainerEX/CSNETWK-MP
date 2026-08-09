@@ -164,17 +164,15 @@ class ClientGame(Game):
         """Get game input."""
         return self.__input
 
+    @property
     def concede(self):
-        """Runs the concede input."""
-        # TODO
-        self.input.run(ClientGame.__concede())
+        """Get concede PDU.
 
-    @staticmethod
-    def __concede(seq_num: int, player_id: PlayerID):
-        async def prompt():
-            return Concede(seq_num=seq_num, player_id=player_id)
-
-        return prompt
+        Returns:
+            Concede: Concede PDU
+        """
+        # TODO Put the correct values
+        return Concede(seq_num=1, player_id="sd")
 
     def _parse_phase(self, phase_value: str):
         for enum_type in (State, GamePhase, CombatStep):
@@ -678,12 +676,12 @@ class ClientGame(Game):
                         chosen_target=target,
                     )
                 ]
-            else:
-                return [
-                    TriggerChoiceResponse(
-                        seq_num=seq_num, trigger_id=trigger[0], accept=False
-                    )
-                ]
+
+            return [
+                TriggerChoiceResponse(
+                    seq_num=seq_num, trigger_id=trigger[0], accept=False
+                )
+            ]
 
         return prompt
 
