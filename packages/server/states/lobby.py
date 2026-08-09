@@ -10,7 +10,10 @@ from packages.shared.cards import Card
 if TYPE_CHECKING:
     from packages.server.game import ServerGame
 
-def handle_lobby(game: "ServerGame", pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+
+def handle_lobby(
+    game: "ServerGame", pdu: PDU, player: PlayerID
+) -> dict[PlayerID, list[PDU]]:
     from packages.server.game import ServerPlayer
 
     result: dict[PlayerID, list[PDU]] = {p.id: [] for p in game._players}
@@ -18,7 +21,9 @@ def handle_lobby(game: "ServerGame", pdu: PDU, player: PlayerID) -> dict[PlayerI
 
     if pdu.type != Type.PLAYER_READY:
         result[player].append(
-            game._make_error(Error.Code.WRONG_PHASE, "Only PLAYER_READY is accepted in LOBBY.", pdu)
+            game._make_error(
+                Error.Code.WRONG_PHASE, "Only PLAYER_READY is accepted in LOBBY.", pdu
+            )
         )
         return result
 
@@ -27,7 +32,9 @@ def handle_lobby(game: "ServerGame", pdu: PDU, player: PlayerID) -> dict[PlayerI
     # Validate player_id non-empty
     if not pr.player_id:
         result[player].append(
-            game._make_error(Error.Code.ILLEGAL_DECK, "player_id must be non-empty.", pdu)
+            game._make_error(
+                Error.Code.ILLEGAL_DECK, "player_id must be non-empty.", pdu
+            )
         )
         return result
 
@@ -46,9 +53,11 @@ def handle_lobby(game: "ServerGame", pdu: PDU, player: PlayerID) -> dict[PlayerI
         for cid in pr.deck_list:
             cls = Card.from_id(cid)
             deck_cards.append(cls(cid))
-    except (KeyError, ValueError):
+    except KeyError, ValueError:
         result[player].append(
-            game._make_error(Error.Code.ILLEGAL_DECK, "Deck contains an unknown card ID.", pdu)
+            game._make_error(
+                Error.Code.ILLEGAL_DECK, "Deck contains an unknown card ID.", pdu
+            )
         )
         return result
 
@@ -58,7 +67,9 @@ def handle_lobby(game: "ServerGame", pdu: PDU, player: PlayerID) -> dict[PlayerI
     )
     if existing_other:
         result[player].append(
-            game._make_error(Error.Code.DUPLICATE_ID, f"'{pr.player_id}' is already taken.", pdu)
+            game._make_error(
+                Error.Code.DUPLICATE_ID, f"'{pr.player_id}' is already taken.", pdu
+            )
         )
         return result
 

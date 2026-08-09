@@ -77,7 +77,7 @@ class _BFEntry:
     card: Card
     tapped: bool = False
     summoning_sick: bool = False
-    damage: int = 0 
+    damage: int = 0
 
 
 @dataclass
@@ -90,7 +90,7 @@ class _StackEntry:
     targets: list[str]
     controller: PlayerID
     card_obj: Card
-    is_permanent: bool 
+    is_permanent: bool
 
 
 @dataclass
@@ -130,13 +130,13 @@ class ServerPlayer(Player):
         self._library: list[Card] = deck
         self._hand: set[Card] = set()
         self._battlefield: dict[CardID, _BFEntry] = {}
-        self._graveyard: list[CardID] = [] 
+        self._graveyard: list[CardID] = []
         self._life: int = 20
 
     # --- Properties ---
 
     @property
-    def life_total(self) -> int:  
+    def life_total(self) -> int:
         return self._life
 
     @property
@@ -145,15 +145,15 @@ class ServerPlayer(Player):
         return self._library
 
     @property
-    def hand(self) -> set[Card]:  
+    def hand(self) -> set[Card]:
         return self._hand
 
     @property
-    def battlefield(self) -> dict[CardID, _BFEntry]: 
+    def battlefield(self) -> dict[CardID, _BFEntry]:
         return self._battlefield
 
     @property
-    def graveyard(self) -> list[CardID]:  
+    def graveyard(self) -> list[CardID]:
         return self._graveyard
 
     # --- Mutators ---
@@ -246,6 +246,7 @@ class ServerPlayer(Player):
 from packages.server.priority import PriorityMixin
 from packages.server.utilities import UtilitiesMixin
 
+
 class ServerGame(PriorityMixin, UtilitiesMixin, Game):
     """Server-side game implementing RFC 0001 MTGNP v1.0."""
 
@@ -318,12 +319,15 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         match self.state:
             case State.LOBBY:
                 from packages.server.states.lobby import handle_lobby
+
                 return handle_lobby(self, pdu, player)
             case State.GAME_SETUP:
                 from packages.server.states.game_setup import handle_game_setup
+
                 return handle_game_setup(self, pdu, player)
             case State.MULLIGAN:
                 from packages.server.states.mulligan import handle_mulligan
+
                 return handle_mulligan(self, pdu, player)
             case GamePhase.UNTAP:
                 return self._untap(pdu, player)
@@ -355,6 +359,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                 return self._cleanup(pdu, player)
             case State.GAME_OVER:
                 from packages.server.states.game_over import handle_game_over
+
                 return handle_game_over(self, pdu, player)
             case _:
                 return {}
@@ -433,7 +438,9 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         if not skip:
             drawn = ap.draw_card()
             if drawn is None:
-                self._emit_game_over(self._nap(), ap, GameOver.Reason.DECK_EMPTY, result)
+                self._emit_game_over(
+                    self._nap(), ap, GameOver.Reason.DECK_EMPTY, result
+                )
                 return
         self._broadcast_gsu(result)
         self._open_priority(result)
@@ -487,7 +494,8 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         self.state = CombatStep.ASSIGN_DAMAGE_ORDER
         self._priority_holder_idx = None
         self._pending_damage_orders = {
-            a.creature_id for a in self._attackers
+            a.creature_id
+            for a in self._attackers
             if len(self._blockers.get(a.creature_id, [])) >= 2
         }
         self._seq_num += 1
@@ -619,7 +627,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         self._seq_num += 1
         pt_untap = PhaseTransition(
             seq_num=self._seq_num,
-            from_phase=GamePhase.CLEANUP, 
+            from_phase=GamePhase.CLEANUP,
             to_phase=GamePhase.UNTAP,
             active_player=ap.id,
             turn=self._turn,
@@ -672,7 +680,13 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                 target_p = self._player_map.get(ai.target_player)
                 if target_p:
                     target_p._life -= power
-                    damage_events.append({"source": ai.creature_id, "target": ai.target_player, "amount": power})
+                    damage_events.append(
+                        {
+                            "source": ai.creature_id,
+                            "target": ai.target_player,
+                            "amount": power,
+                        }
+                    )
             else:
                 order = self._damage_order.get(ai.creature_id, blockers)
                 dmg_left = power
@@ -690,7 +704,9 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                     else:
                         assign = lethal if dmg_left >= lethal else dmg_left
                     blk_entry.damage += assign
-                    damage_events.append({"source": ai.creature_id, "target": blk_id, "amount": assign})
+                    damage_events.append(
+                        {"source": ai.creature_id, "target": blk_id, "amount": assign}
+                    )
                     dmg_left -= assign
 
         # --- Blocker → attacker ---
@@ -705,7 +721,9 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                 pb, _ = self._pump_bonuses(blk_id)
                 blk_power = blk_entry.card.power() + pb
                 att_entry.damage += blk_power
-                damage_events.append({"source": blk_id, "target": att_id, "amount": blk_power})
+                damage_events.append(
+                    {"source": blk_id, "target": att_id, "amount": blk_power}
+                )
 
         # --- State-based actions: lethal damage → graveyard ---
         for p in self._players:
@@ -722,13 +740,15 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
 
         # Broadcast COMBAT_DAMAGE_RESULT
         self._seq_num += 1
-        cdr = CombatDamageResult.model_validate({
-            "type": Type.COMBAT_DAMAGE_RESULT,
-            "seq_num": self._seq_num,
-            "damage_events": damage_events,
-            "life_totals": life_totals,
-            "creatures_died": creatures_died,
-        })
+        cdr = CombatDamageResult.model_validate(
+            {
+                "type": Type.COMBAT_DAMAGE_RESULT,
+                "seq_num": self._seq_num,
+                "damage_events": damage_events,
+                "life_totals": life_totals,
+                "creatures_died": creatures_died,
+            }
+        )
         for p in self._players:
             result[p.id].append(cdr)
 
@@ -758,9 +778,8 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         entry = self._stack.pop()
 
         # Target validity check
-        all_invalid = (
-            bool(entry.targets)
-            and not any(self._is_target_still_valid(t) for t in entry.targets)
+        all_invalid = bool(entry.targets) and not any(
+            self._is_target_still_valid(t) for t in entry.targets
         )
 
         self._seq_num += 1
@@ -883,7 +902,9 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         for color, amount in mana_payment.items():
             if color == Card.Color.C:
                 continue
-            matching = [cid for cid, c in pool.items() if c == color and cid not in used]
+            matching = [
+                cid for cid, c in pool.items() if c == color and cid not in used
+            ]
             if len(matching) < amount:
                 return False, []
             used.update(matching[:amount])
@@ -929,15 +950,17 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
     # -----------------------------------------------------------------------
 
     def _build_lobby_gsu(self) -> GameStateUpdate:
-        return GameStateUpdate.model_validate({
-            "type": Type.GAME_STATE_UPDATE,
-            "seq_num": self._seq_num,
-            "state": {
-                "phase": State.LOBBY,
-                "players_ready": len(self._players),
-                "waiting_for": [],
-            },
-        })
+        return GameStateUpdate.model_validate(
+            {
+                "type": Type.GAME_STATE_UPDATE,
+                "seq_num": self._seq_num,
+                "state": {
+                    "phase": State.LOBBY,
+                    "players_ready": len(self._players),
+                    "waiting_for": [],
+                },
+            }
+        )
 
     def _build_game_gsu(self, for_player: ServerPlayer) -> GameStateUpdate:
         """Build a personalized in-game GAME_STATE_UPDATE for *for_player*."""
@@ -950,12 +973,14 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                 d: dict = {"id": cid, "tapped": e.tapped}
                 if isinstance(e.card, CreatureCard):
                     pb, tb = self._pump_bonuses(cid)
-                    d.update({
-                        "damage": e.damage,
-                        "power": e.card.power() + pb,
-                        "toughness": e.card.toughness() + tb,
-                        "summoning_sick": e.summoning_sick,
-                    })
+                    d.update(
+                        {
+                            "damage": e.damage,
+                            "power": e.card.power() + pb,
+                            "toughness": e.card.toughness() + tb,
+                            "summoning_sick": e.summoning_sick,
+                        }
+                    )
                 bf_list.append(d)
             battlefield[p.id] = bf_list
 
@@ -992,11 +1017,13 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         }
 
         self._seq_num += 1
-        return GameStateUpdate.model_validate({
-            "type": Type.GAME_STATE_UPDATE,
-            "seq_num": self._seq_num,
-            "state": state_dict,
-        })
+        return GameStateUpdate.model_validate(
+            {
+                "type": Type.GAME_STATE_UPDATE,
+                "seq_num": self._seq_num,
+                "state": state_dict,
+            }
+        )
 
     def _broadcast_gsu(self, result: dict) -> None:
         """Send a personalized GSU to every player."""
@@ -1049,50 +1076,105 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
     # Phase handlers
     # -----------------------------------------------------------------------
 
-    def _generic_wrong_phase(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def _generic_wrong_phase(
+        self, pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, list[PDU]]:
         result: dict[PlayerID, list[PDU]] = {p.id: [] for p in self._players}
-        result[player].append(self._make_error(Error.Code.WRONG_PHASE, "No special actions expected during this phase.", pdu))
+        result[player].append(
+            self._make_error(
+                Error.Code.WRONG_PHASE,
+                "No special actions expected during this phase.",
+                pdu,
+            )
+        )
         return result
 
-    def _untap(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
-    def _upkeep(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
-    def _draw(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
-    def _precombat_main(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
-    def _begin_combat(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
-    def _first_strike_damage(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
-    def _combat_damage(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
-    def _end_of_combat(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
-    def _postcombat_main(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
-    def _end_step(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]: return self._generic_wrong_phase(pdu, player)
+    def _untap(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
 
-    def _declare_attackers(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def _upkeep(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
+
+    def _draw(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
+
+    def _precombat_main(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
+
+    def _begin_combat(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
+
+    def _first_strike_damage(
+        self, pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
+
+    def _combat_damage(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
+
+    def _end_of_combat(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
+
+    def _postcombat_main(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
+
+    def _end_step(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+        return self._generic_wrong_phase(pdu, player)
+
+    def _declare_attackers(
+        self, pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, list[PDU]]:
         result: dict[PlayerID, list[PDU]] = {p.id: [] for p in self._players}
         ap = self._ap()
         if player != ap.id:
-            result[player].append(self._make_error(Error.Code.NOT_YOUR_PRIORITY, "Only the Active Player declares attackers.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.NOT_YOUR_PRIORITY,
+                    "Only the Active Player declares attackers.",
+                    pdu,
+                )
+            )
             return result
         if pdu.type != Type.DECLARE_ATTACKERS:
-            result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Expecting DECLARE_ATTACKERS.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.WRONG_PHASE, "Expecting DECLARE_ATTACKERS.", pdu
+                )
+            )
             return result
-        
+
         da: DeclareAttackers = pdu
         if da.seq_num != self._declare_attackers_seq_num:
-            result[player].append(self._make_error(Error.Code.STALE_ACTION, "Stale action.", pdu))
+            result[player].append(
+                self._make_error(Error.Code.STALE_ACTION, "Stale action.", pdu)
+            )
             return result
 
         for att in da.attackers:
             entry = ap.battlefield.get(att.creature_id)
             if not entry or not isinstance(entry.card, CreatureCard):
-                result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{att.creature_id} invalid.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.ILLEGAL_ACTION, f"{att.creature_id} invalid.", pdu
+                    )
+                )
                 return result
             if entry.tapped or entry.summoning_sick:
-                result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{att.creature_id} cannot attack.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.ILLEGAL_ACTION,
+                        f"{att.creature_id} cannot attack.",
+                        pdu,
+                    )
+                )
                 return result
 
         self._attackers = []
         for att in da.attackers:
             ap.tap(att.creature_id)
-            self._attackers.append(_AttackerInfo(creature_id=att.creature_id, target_player=att.target))
+            self._attackers.append(
+                _AttackerInfo(creature_id=att.creature_id, target_player=att.target)
+            )
 
         self._broadcast_gsu(result)
         if not self._attackers:
@@ -1101,32 +1183,58 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
             self._open_priority(result)
         return result
 
-    def _declare_blockers(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def _declare_blockers(
+        self, pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, list[PDU]]:
         result: dict[PlayerID, list[PDU]] = {p.id: [] for p in self._players}
         nap = self._nap()
         if player != nap.id:
-            result[player].append(self._make_error(Error.Code.NOT_YOUR_PRIORITY, "Only NAP declares blockers.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.NOT_YOUR_PRIORITY, "Only NAP declares blockers.", pdu
+                )
+            )
             return result
         if pdu.type != Type.DECLARE_BLOCKERS:
-            result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Expecting DECLARE_BLOCKERS.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.WRONG_PHASE, "Expecting DECLARE_BLOCKERS.", pdu
+                )
+            )
             return result
-        
+
         db: DeclareBlockers = pdu
         if db.seq_num != self._declare_blockers_seq_num:
-            result[player].append(self._make_error(Error.Code.STALE_ACTION, "Stale action.", pdu))
+            result[player].append(
+                self._make_error(Error.Code.STALE_ACTION, "Stale action.", pdu)
+            )
             return result
 
         attacker_ids = {a.creature_id for a in self._attackers}
         for blk in db.blockers:
             entry = nap.battlefield.get(blk.creature_id)
             if not entry or not isinstance(entry.card, CreatureCard):
-                result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{blk.creature_id} invalid.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.ILLEGAL_ACTION, f"{blk.creature_id} invalid.", pdu
+                    )
+                )
                 return result
             if entry.tapped:
-                result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{blk.creature_id} is tapped.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.ILLEGAL_ACTION, f"{blk.creature_id} is tapped.", pdu
+                    )
+                )
                 return result
             if blk.blocking_id not in attacker_ids:
-                result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{blk.blocking_id} invalid target.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.ILLEGAL_ACTION,
+                        f"{blk.blocking_id} invalid target.",
+                        pdu,
+                    )
+                )
                 return result
             self._blockers.setdefault(blk.blocking_id, []).append(blk.creature_id)
 
@@ -1138,19 +1246,31 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         self._open_priority(result)
         return result
 
-    def _assign_damage_order(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def _assign_damage_order(
+        self, pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, list[PDU]]:
         result: dict[PlayerID, list[PDU]] = {p.id: [] for p in self._players}
         ap = self._ap()
         if player != ap.id:
-            result[player].append(self._make_error(Error.Code.NOT_YOUR_PRIORITY, "AP assigns damage order.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.NOT_YOUR_PRIORITY, "AP assigns damage order.", pdu
+                )
+            )
             return result
         if pdu.type != Type.ASSIGN_DAMAGE_ORDER:
-            result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Expecting ASSIGN_DAMAGE_ORDER.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.WRONG_PHASE, "Expecting ASSIGN_DAMAGE_ORDER.", pdu
+                )
+            )
             return result
-            
+
         ado: AssignDamageOrder = pdu
         if ado.seq_num != self._assign_damage_order_seq_num:
-            result[player].append(self._make_error(Error.Code.STALE_ACTION, "Stale action.", pdu))
+            result[player].append(
+                self._make_error(Error.Code.STALE_ACTION, "Stale action.", pdu)
+            )
             return result
 
         self._damage_order[ado.attacker_id] = ado.blocker_order
@@ -1164,25 +1284,43 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         result: dict[PlayerID, list[PDU]] = {p.id: [] for p in self._players}
         ap = self._ap()
         if player != ap.id or self._discard_player != ap.id:
-            result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Not waiting for your discard.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.WRONG_PHASE, "Not waiting for your discard.", pdu
+                )
+            )
             return result
         if pdu.type != Type.DISCARD:
-            result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Expecting DISCARD.", pdu))
+            result[player].append(
+                self._make_error(Error.Code.WRONG_PHASE, "Expecting DISCARD.", pdu)
+            )
             return result
-            
+
         disc: Discard = pdu
         if disc.seq_num != self._discard_gsu_seq:
-            result[player].append(self._make_error(Error.Code.STALE_ACTION, "Stale discard.", pdu))
+            result[player].append(
+                self._make_error(Error.Code.STALE_ACTION, "Stale discard.", pdu)
+            )
             return result
 
         needed = len(ap.hand) - 7
         if len(disc.card_ids) != needed:
-            result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"Must discard exactly {needed} cards.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.ILLEGAL_ACTION,
+                    f"Must discard exactly {needed} cards.",
+                    pdu,
+                )
+            )
             return result
 
         for cid in disc.card_ids:
             if not ap.card_in_hand(cid):
-                result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{cid} not in hand.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.ILLEGAL_ACTION, f"{cid} not in hand.", pdu
+                    )
+                )
                 return result
 
         for cid in disc.card_ids:

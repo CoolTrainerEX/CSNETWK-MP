@@ -7,7 +7,10 @@ from packages.shared.player import PlayerID
 if TYPE_CHECKING:
     from packages.server.game import ServerGame
 
-def handle_mulligan(game: "ServerGame", pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+
+def handle_mulligan(
+    game: "ServerGame", pdu: PDU, player: PlayerID
+) -> dict[PlayerID, list[PDU]]:
     result: dict[PlayerID, list[PDU]] = {p.id: [] for p in game._players}
     player_obj = game._player_map.get(player)
 
@@ -24,7 +27,9 @@ def handle_mulligan(game: "ServerGame", pdu: PDU, player: PlayerID) -> dict[Play
     expected = game._mulligan_gsu_seq.get(player, 0)
     if mc.seq_num != expected:
         result[player].append(
-            game._make_error(Error.Code.STALE_ACTION, f"Stale. Expected {expected}.", pdu)
+            game._make_error(
+                Error.Code.STALE_ACTION, f"Stale. Expected {expected}.", pdu
+            )
         )
         return result
 
@@ -52,7 +57,9 @@ def handle_mulligan(game: "ServerGame", pdu: PDU, player: PlayerID) -> dict[Play
         for cid in mc.cards_to_bottom:
             if not player_obj.card_in_hand(cid):
                 result[player].append(
-                    game._make_error(Error.Code.ILLEGAL_ACTION, f"Card {cid} not in hand.", pdu)
+                    game._make_error(
+                        Error.Code.ILLEGAL_ACTION, f"Card {cid} not in hand.", pdu
+                    )
                 )
                 return result
 

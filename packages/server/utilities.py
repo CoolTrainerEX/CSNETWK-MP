@@ -22,7 +22,9 @@ class UtilitiesMixin:
     def _opponent_of(self: "ServerGame", player: "ServerPlayer") -> "ServerPlayer":
         return self._players[1 - self._players.index(player)]
 
-    def _opponent_of_id(self: "ServerGame", player_id: PlayerID) -> "ServerPlayer | None":
+    def _opponent_of_id(
+        self: "ServerGame", player_id: PlayerID
+    ) -> "ServerPlayer | None":
         return next((p for p in self._players if p.id != player_id), None)
 
     def _pump_bonuses(self: "ServerGame", card_id: CardID) -> tuple[int, int]:

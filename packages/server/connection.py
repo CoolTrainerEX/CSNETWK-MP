@@ -73,7 +73,7 @@ class ServerConnection(object):
                                     await write(
                                         pdu, self.__writers[player], self.__verbose
                                     )
-                except (TimeoutError, IncompleteReadError, ConnectionResetError):
+                except TimeoutError, IncompleteReadError, ConnectionResetError:
                     if reader in self.__readers:
                         for player, payload in self.__game.disconnect(
                             self.__readers[reader]
