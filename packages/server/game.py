@@ -240,6 +240,9 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
     def __init__(self) -> None:
         """Create a game instance."""
         super().__init__()
+        
+        from packages.server.triggers import TriggerEngine
+        self._trigger_engine = TriggerEngine(self)
 
         # Players
         self._players: list[ServerPlayer] = []
@@ -314,40 +317,21 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                 return handle_game_setup(self, pdu, player)
             case State.MULLIGAN:
                 from packages.server.states.mulligan import handle_mulligan
-
+                
                 return handle_mulligan(self, pdu, player)
-            case GamePhase.UNTAP:
-                return self._untap(pdu, player)
-            case GamePhase.UPKEEP:
-                return self._upkeep(pdu, player)
-            case GamePhase.DRAW:
-                return self._draw(pdu, player)
-            case GamePhase.PRECOMBAT_MAIN:
-                return self._precombat_main(pdu, player)
-            case CombatStep.BEGIN_COMBAT:
-                return self._begin_combat(pdu, player)
             case CombatStep.DECLARE_ATTACKERS:
                 return self._declare_attackers(pdu, player)
             case CombatStep.DECLARE_BLOCKERS:
                 return self._declare_blockers(pdu, player)
             case CombatStep.ASSIGN_DAMAGE_ORDER:
                 return self._assign_damage_order(pdu, player)
-            case CombatStep.FIRST_STRIKE_DAMAGE:
-                return self._first_strike_damage(pdu, player)
-            case CombatStep.COMBAT_DAMAGE:
-                return self._combat_damage(pdu, player)
-            case CombatStep.END_OF_COMBAT:
-                return self._end_of_combat(pdu, player)
-            case GamePhase.POSTCOMBAT_MAIN:
-                return self._postcombat_main(pdu, player)
-            case GamePhase.END_STEP:
-                return self._end_step(pdu, player)
             case GamePhase.CLEANUP:
                 return self._cleanup(pdu, player)
             case State.GAME_OVER:
                 from packages.server.states.game_over import handle_game_over
-
                 return handle_game_over(self, pdu, player)
+            case GamePhase.UNTAP | GamePhase.UPKEEP | GamePhase.DRAW | GamePhase.PRECOMBAT_MAIN | CombatStep.BEGIN_COMBAT | CombatStep.FIRST_STRIKE_DAMAGE | CombatStep.COMBAT_DAMAGE | CombatStep.END_OF_COMBAT | GamePhase.POSTCOMBAT_MAIN | GamePhase.END_STEP:
+                return self._generic_wrong_phase(pdu, player)
             case _:
                 return {}
 
@@ -807,15 +791,30 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         Permanent spells (creatures, enchantments, artifacts) enter the
         battlefield on resolution.  All other logic is in effects.py.
         """
+        if entry.is_permanent:
+            player = self._player_map[entry.controller]
+            sick = isinstance(entry.card_obj, CreatureCard)
+            player.put_to_battlefield(entry.card_obj, summoning_sick=sick)
+            self._trigger_engine.dispatch("ETB", {"source_id": entry.card_obj.id, "controller_id": entry.controller})
+            return []
+
+        is_trig = False
+        is_abil = False
+        if entry.item_type == StackItem.ItemType.TRIGGER_ABILITY:
+            is_trig = True
+        elif entry.item_type == StackItem.ItemType.ABILITY:
+            is_abil = True
+
         return apply_effect(
             card_obj=entry.card_obj,
             targets=entry.targets,
             controller=entry.controller,
-            is_permanent=entry.is_permanent,
             player_map=self._player_map,
             players=self._players,
             stack=self._stack,
             eot_pumps=self._eot_pumps,
+            is_trigger=is_trig,
+            is_ability=is_abil,
         )
 
     # -----------------------------------------------------------------------
@@ -1076,37 +1075,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         )
         return result
 
-    def _untap(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
 
-    def _upkeep(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
-
-    def _draw(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
-
-    def _precombat_main(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
-
-    def _begin_combat(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
-
-    def _first_strike_damage(
-        self, pdu: PDU, player: PlayerID
-    ) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
-
-    def _combat_damage(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
-
-    def _end_of_combat(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
-
-    def _postcombat_main(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
-
-    def _end_step(self, pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
-        return self._generic_wrong_phase(pdu, player)
 
     def _declare_attackers(
         self, pdu: PDU, player: PlayerID
@@ -1159,6 +1128,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         self._attackers = []
         for att in da.attackers:
             ap.tap(att.creature_id)
+            self._trigger_engine.dispatch("ATTACKS", {"source_id": att.creature_id, "controller_id": player})
             self._attackers.append(
                 _AttackerInfo(creature_id=att.creature_id, target_player=att.target)
             )

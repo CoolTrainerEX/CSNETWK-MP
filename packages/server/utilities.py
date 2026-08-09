@@ -1,4 +1,4 @@
-"""Utilities mixin for ServerGame."""
+"""Utility helpers for Server Logic."""
 
 from typing import TYPE_CHECKING
 
