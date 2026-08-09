@@ -1,16 +1,27 @@
 """Client state."""
 
+from typing import Sequence
+
 from prompt_toolkit.formatted_text import ANSI, to_formatted_text
 from prompt_toolkit.patch_stdout import patch_stdout
 from questionary import checkbox, select, text
 
 from packages.client.input import Input, rich_parse
-from packages.shared.cards import BattlefieldCard, Card, LandCard
+from packages.shared.cards import (
+    BattlefieldCard,
+    Card,
+    CreatureCard,
+    CreatureCardID,
+    LandCard,
+)
 from packages.shared.game import CombatStep, Game, GamePhase, State
 from packages.shared.pdu import (
     PDU,
     ActivateAbility,
+    AssignDamageOrder,
     CastSpell,
+    DeclareAttackers,
+    DeclareBlockers,
     MulliganChoice,
     PlayLand,
     PlayerReady,
@@ -231,27 +242,14 @@ class ClientGame(Game):
         # TODO Set seq_num
         self.input.run(ClientGame.__ready_prompt(1))
         self.input.run(
-            ClientGame.__priority(
+            ClientGame.__assign_damage_order(
                 1,
                 {
-                    Card.from_id("mountain_001")("mountain_001"): (
-                        1,
-                        {"asd", "asdasdsf"},
-                    ),
-                    Card.from_id("swamp_001")("swamp_001"): (2, {"asd", "asdasdsf"}),
+                    Card.from_id("ornithopter_001")("ornithopter_001"): {
+                        Card.from_id("ornithopter_002")("ornithopter_002")
+                    },
                 },
-                {
-                    Card.from_id("llanowar_elves_001")("llanowar_elves_001"): [
-                        (
-                            1,
-                            {"asd", "asdasdsf"},
-                        )
-                    ],
-                    Card.from_id("troll_ascetic_001")("troll_ascetic_001"): [
-                        (2, {"asd", "asdasdsf"})
-                    ],
-                },
-            )
+            ),
         )
 
     # TODO
@@ -446,6 +444,163 @@ class ClientGame(Game):
                     ]
                 case _:
                     return [PriorityPass(seq_num=seq_num)]
+
+        return prompt
+
+    # TODO
+    @staticmethod
+    def __declare_attackers(
+        seq_num: int, attackers: set[CreatureCard], opponent_id: PlayerID
+    ):
+        """Declare attackers prompt.
+
+        Args:
+            seq_num (int): Sequence number
+            attackers (set[CreatureCard]): Set of available atacker choices
+            opponent_id (PlayerID): Target player ID
+        """
+
+        async def prompt():
+            return [
+                DeclareAttackers(
+                    seq_num=seq_num,
+                    attackers={
+                        DeclareAttackers.Attacker(
+                            creature_id=attacker, target=opponent_id
+                        )
+                        for attacker in await checkbox(
+                            "Declare attackers",
+                            [
+                                {
+                                    "name": to_formatted_text(
+                                        ANSI(rich_parse(f"\n{attacker}"))
+                                    ),
+                                    "value": attacker.id,
+                                }
+                                for attacker in attackers
+                            ],
+                        ).ask_async()
+                    },
+                )
+            ]
+
+        return prompt
+
+    # TODO
+    @staticmethod
+    def __declare_blockers(
+        seq_num: int, blockers: dict[CreatureCard, set[CreatureCard]]
+    ):
+        """Declare blockers prompt.
+
+        Args:
+            seq_num (int): Sequence number
+            blockers (dict[CreatureCard, set[CreatureCard]]): Available blockers and set of blockable attackers
+        """
+
+        async def prompt():
+            blockers_set: set[DeclareBlockers.Blocker] = set()
+
+            while blockers:
+                blocker = await select(
+                    "Declare blockers",
+                    [
+                        {
+                            "name": to_formatted_text(ANSI(rich_parse(f"\n{blocker}"))),
+                            "value": blocker,
+                        }
+                        for blocker in blockers.keys()
+                    ]
+                    + ["Done"],
+                ).ask_async()
+
+                if not isinstance(blocker, CreatureCard):
+                    break
+
+                blockers_set.add(
+                    DeclareBlockers.Blocker(
+                        creature_id=blocker.id,
+                        blocking_id=await select(
+                            "Select attacker",
+                            [
+                                {
+                                    "name": to_formatted_text(
+                                        ANSI(rich_parse(f"\n{attacker}"))
+                                    ),
+                                    "value": attacker.id,
+                                }
+                                for attacker in blockers[blocker]
+                            ],
+                        ).ask_async(),
+                    )
+                )
+
+                del blockers[blocker]
+
+            return [
+                DeclareBlockers(
+                    seq_num=seq_num,
+                    blockers=blockers_set,
+                )
+            ]
+
+        return prompt
+
+    # TODO
+    @staticmethod
+    def __assign_damage_order(
+        seq_num: int, attackers: dict[CreatureCard, set[CreatureCard]]
+    ):
+        async def prompt():
+            damage_orders: list[AssignDamageOrder] = []
+
+            while attackers:
+                attacker = await select(
+                    "Assign damage order",
+                    [
+                        {
+                            "name": to_formatted_text(
+                                ANSI(rich_parse(f"\n{attacker}"))
+                            ),
+                            "value": attacker,
+                        }
+                        for attacker in attackers.keys()
+                    ],
+                ).ask_async()
+
+                if not isinstance(attacker, CreatureCard):
+                    break
+
+                blockers: list[CreatureCardID] = []
+
+                while attackers[attacker]:
+                    blocker = await select(
+                        "Select blocker",
+                        [
+                            {
+                                "name": to_formatted_text(
+                                    ANSI(rich_parse(f"\n{blocker}"))
+                                ),
+                                "value": blocker,
+                            }
+                            for blocker in attackers[attacker]
+                        ],
+                        instruction="Select the next blocker.",
+                    ).ask_async()
+
+                    blockers.append(blocker.id)
+
+                    attackers[attacker].remove(blocker)
+
+                damage_orders.append(
+                    AssignDamageOrder(
+                        seq_num=seq_num, attacker_id=attacker.id, blocker_order=blockers
+                    )
+                )
+
+                del attackers[attacker]
+
+            return damage_orders
 
         return prompt
 

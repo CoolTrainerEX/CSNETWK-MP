@@ -544,7 +544,7 @@ class DeclareAttackers(BaseModel):
         attackers (set[Attacker]): Send empty attackers array to declare no attack
     """
 
-    class __Attacker(BaseModel):
+    class Attacker(BaseModel):
         """Attacker.
 
         Attributes:
@@ -566,7 +566,7 @@ class DeclareAttackers(BaseModel):
                 bool: Is equal
             """
             return (
-                isinstance(value, DeclareAttackers.__Attacker)
+                isinstance(value, DeclareAttackers.Attacker)
                 and self.creature_id == value.creature_id
             )
 
@@ -580,7 +580,7 @@ class DeclareAttackers(BaseModel):
 
     type: Literal[Type.DECLARE_ATTACKERS] = Type.DECLARE_ATTACKERS
     seq_num: int
-    attackers: set[__Attacker] = set()
+    attackers: set[Attacker] = set()
 
 
 class DeclareBlockers(BaseModel):
@@ -595,7 +595,7 @@ class DeclareBlockers(BaseModel):
         blockers (set[Blocker]): Send empty blockers array to not block
     """
 
-    class __Blocker(BaseModel):
+    class Blocker(BaseModel):
         """Bolcker.
 
         Attributes:
@@ -617,7 +617,7 @@ class DeclareBlockers(BaseModel):
                 bool: Is equal
             """
             return (
-                isinstance(value, DeclareBlockers.__Blocker)
+                isinstance(value, DeclareBlockers.Blocker)
                 and self.creature_id == value.creature_id
             )
 
@@ -631,7 +631,7 @@ class DeclareBlockers(BaseModel):
 
     type: Literal[Type.DECLARE_BLOCKERS] = Type.DECLARE_BLOCKERS
     seq_num: int
-    blockers: set[__Blocker] = set()
+    blockers: set[Blocker] = set()
 
 
 class AssignDamageOrder(BaseModel):
@@ -651,7 +651,7 @@ class AssignDamageOrder(BaseModel):
     type: Literal[Type.ASSIGN_DAMAGE_ORDER] = Type.ASSIGN_DAMAGE_ORDER
     seq_num: int
     attacker_id: CreatureCardID
-    blocker_order: set[CreatureCardID]
+    blocker_order: list[CreatureCardID]
 
 
 class CombatDamageResult(BaseModel):

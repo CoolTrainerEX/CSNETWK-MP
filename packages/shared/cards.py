@@ -14,8 +14,6 @@ CardID = ID
 CreatureCardID = CardID
 LandCardID = CardID
 
-# TODO Please add the ability  and cast text and cost ()
-
 
 class Card(ABC):
     """Base card class."""

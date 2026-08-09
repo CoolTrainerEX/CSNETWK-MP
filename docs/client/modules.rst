@@ -8,4 +8,3 @@ client
    game
    input
    main
-   states/modules
