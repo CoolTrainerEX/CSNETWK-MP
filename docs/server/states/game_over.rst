@@ -1,7 +1,7 @@
 game\_over module
 =================
 
-.. automodule:: server.states.game_over
+.. automodule:: game_over
    :members:
    :show-inheritance:
    :undoc-members:

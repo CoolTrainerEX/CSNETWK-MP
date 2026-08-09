@@ -8,4 +8,6 @@ server
    connection
    game
    main
+   priority
+   utilities
    states/modules

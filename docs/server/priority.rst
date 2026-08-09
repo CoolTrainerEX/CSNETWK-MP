@@ -1,7 +1,7 @@
-mulligan module
+priority module
 ===============
 
-.. automodule:: mulligan
+.. automodule:: priority
    :members:
    :show-inheritance:
    :undoc-members:

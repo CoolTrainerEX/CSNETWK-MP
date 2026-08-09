@@ -1,7 +1,7 @@
 game\_setup module
 ==================
 
-.. automodule:: server.states.game_setup
+.. automodule:: game_setup
    :members:
    :show-inheritance:
    :undoc-members:

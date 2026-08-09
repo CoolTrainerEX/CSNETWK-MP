@@ -8,5 +8,3 @@ states
    game_setup
    lobby
    mulligan
-   game_phases/modules
-   game_phases/combat_steps/modules

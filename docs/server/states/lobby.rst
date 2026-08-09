@@ -1,7 +1,7 @@
 lobby module
 ============
 
-.. automodule:: server.states.lobby
+.. automodule:: lobby
    :members:
    :show-inheritance:
    :undoc-members:
