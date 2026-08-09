@@ -171,8 +171,8 @@ class ClientGame(Game):
         Returns:
             Concede: Concede PDU
         """
-        # TODO Put the correct values
-        return Concede(seq_num=1, player_id="sd")
+        player_id = self._players[0].id if hasattr(self, "_players") and self._players else ""
+        return Concede(seq_num=getattr(self, "_seq_num", 1), player_id=player_id)
 
     def _parse_phase(self, phase_value: str):
         for enum_type in (State, GamePhase, CombatStep):
@@ -255,10 +255,9 @@ class ClientGame(Game):
 
     def ready(self):
         """Initial player ready prompt."""
-        # TODO Set seq_num
-        self.input.run(ClientGame.__ready_prompt(1))
+        self._player_ready_seq_num = getattr(self, "_player_ready_seq_num", 0) + 1
+        self.input.run(ClientGame.__ready_prompt(self._player_ready_seq_num))
 
-    # TODO
     @staticmethod
     def __ready_prompt(seq_num: int):
         async def prompt():
@@ -294,7 +293,6 @@ class ClientGame(Game):
 
         return prompt
 
-    # TODO
     @staticmethod
     def __mulligan_prompt(seq_num: int, cards: set[Card], num_bottom: int):
         async def prompt():
@@ -326,7 +324,6 @@ class ClientGame(Game):
 
         return prompt
 
-    # TODO
     @staticmethod
     def __priority(
         seq_num: int,
@@ -386,12 +383,28 @@ class ClientGame(Game):
                     if isinstance(spell, LandCard):
                         return [PlayLand(seq_num=seq_num, card_id=spell.id)]
 
+                    mana_payment = dict(spell.cast_details().mana_cost)
+                    generic_cost = mana_payment.pop(Card.Color.C, 0)
+
+                    for i in range(generic_cost):
+                        color = await select(
+                            f"Pay generic mana {i+1}/{generic_cost} with:",
+                            [
+                                {"name": "White", "value": Card.Color.W},
+                                {"name": "Blue", "value": Card.Color.U},
+                                {"name": "Black", "value": Card.Color.B},
+                                {"name": "Red", "value": Card.Color.R},
+                                {"name": "Green", "value": Card.Color.G},
+                            ]
+                        ).ask_async()
+                        mana_payment[color] = mana_payment.get(color, 0) + 1
+
                     return [
                         CastSpell(
                             seq_num=seq_num,
                             card_id=spell.id,
                             targets=targets,
-                            mana_payment=spell.cast_details().mana_cost,
+                            mana_payment=mana_payment,
                         )
                     ]
                 case "Activate ability":
@@ -436,6 +449,22 @@ class ClientGame(Game):
                     else:
                         targets: set[ID] = set()
 
+                    mana_payment = dict(card.abilities_details()[ability].mana_cost)
+                    generic_cost = mana_payment.pop(Card.Color.C, 0)
+
+                    for i in range(generic_cost):
+                        color = await select(
+                            f"Pay generic mana {i+1}/{generic_cost} with:",
+                            [
+                                {"name": "White", "value": Card.Color.W},
+                                {"name": "Blue", "value": Card.Color.U},
+                                {"name": "Black", "value": Card.Color.B},
+                                {"name": "Red", "value": Card.Color.R},
+                                {"name": "Green", "value": Card.Color.G},
+                            ]
+                        ).ask_async()
+                        mana_payment[color] = mana_payment.get(color, 0) + 1
+
                     return [
                         ActivateAbility(
                             seq_num=seq_num,
@@ -444,7 +473,7 @@ class ClientGame(Game):
                             targets=targets,
                             cost_payment=ActivateAbility.CostPayment(  # type: ignore
                                 tap=bool(card.abilities_details()[ability].tap_cost),
-                                mana=card.abilities_details()[ability].mana_cost,
+                                mana=mana_payment,
                             ),
                         )
                     ]
@@ -453,7 +482,6 @@ class ClientGame(Game):
 
         return prompt
 
-    # TODO
     @staticmethod
     def __declare_attackers(
         seq_num: int, opponent_id: PlayerID, attackers: set[CreatureCard] = set()
@@ -496,7 +524,6 @@ class ClientGame(Game):
 
         return prompt
 
-    # TODO
     @staticmethod
     def __declare_blockers(
         seq_num: int, blockers: dict[CreatureCard, set[CreatureCard]] | None = None
@@ -558,7 +585,6 @@ class ClientGame(Game):
 
         return prompt
 
-    # TODO
     @staticmethod
     def __assign_damage_order(
         seq_num: int, attackers: dict[CreatureCard, set[CreatureCard]] | None = None
@@ -616,7 +642,6 @@ class ClientGame(Game):
 
         return prompt
 
-    # TODO
     @staticmethod
     def __trigger_order(seq_num: int, triggers: dict[TriggerID, Trigger] | None = None):
         """Assign trigger order.
@@ -655,7 +680,6 @@ class ClientGame(Game):
 
         return prompt
 
-    # TODO
     @staticmethod
     def __trigger_choice(
         seq_num: int, trigger: tuple[TriggerID, Trigger], targets: set[ID] = set()
@@ -685,7 +709,6 @@ class ClientGame(Game):
 
         return prompt
 
-    # TODO
     @staticmethod
     def __discard(seq_num: int, hand: set[Card] | None = None):
         if hand is None:
