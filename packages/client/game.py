@@ -191,7 +191,8 @@ class ClientGame(Game):
 
             case Type.STACK_RESOLVE:
                 self.stack = [
-                    item for item in self.stack
+                    item
+                    for item in self.stack
                     if getattr(item, "stack_item_id", None) != pdu.stack_item_id
                 ]
 
@@ -232,7 +233,9 @@ class ClientGame(Game):
         if not self._players and our_id and opponent_id:
             self._players = [
                 CurrentClientPlayer(our_id, state.library_counts.get(our_id, 0)),
-                OpponentClientPlayer(opponent_id, state.library_counts.get(opponent_id, 0)),
+                OpponentClientPlayer(
+                    opponent_id, state.library_counts.get(opponent_id, 0)
+                ),
             ]
 
         for p in self._players:
