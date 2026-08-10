@@ -341,6 +341,16 @@ class ClientGame(Game):
                             self._seq_num, self.__get_current_player().hand
                         )
                     )
+
+                if (
+                    self.state == GamePhase.CLEANUP
+                    and len(self.__get_current_player().hand) > 7
+                ):
+                    self.input.run(
+                        ClientGame.__discard(
+                            self._seq_num, self.__get_current_player().hand
+                        )
+                    )
             case Type.PHASE_TRANSITION:
                 self.state = pdu.to_phase
 
@@ -391,6 +401,29 @@ class ClientGame(Game):
                                 and not blocker.summoning_sick
                                 and CreatureCard.Modifier.DEFENDER
                                 not in blocker.modifiers()
+                            },
+                        )
+                    )
+                elif self.state == CombatStep.ASSIGN_DAMAGE_ORDER:
+                    self.input.run(
+                        ClientGame.__assign_damage_order(
+                            self._seq_num,
+                            {
+                                attacker: {
+                                    blocker
+                                    for blocker in self.__get_opponent_player().battlefield
+                                    if isinstance(blocker, CreatureCard)
+                                    and blocker.tapped
+                                    and (
+                                        CreatureCard.Modifier.FLYING
+                                        not in attacker.modifiers()
+                                        or CreatureCard.Modifier.FLYING
+                                        in blocker.modifiers()
+                                    )
+                                }
+                                for attacker in self.__get_current_player().battlefield
+                                if isinstance(attacker, CreatureCard)
+                                and attacker.tapped
                             },
                         )
                     )
@@ -468,11 +501,56 @@ Loser: [bold]{self.game_over_data.loser_id}[/]
             case Type.COMBAT_DAMAGE_RESULT:
                 self.last_combat_result = pdu
 
+                print("""[bold orange]
+░░      ░░░░      ░░░  ░░░░  ░░       ░░░░      ░░░        ░░░░░░░░       ░░░        ░░░      ░░░  ░░░░  ░░  ░░░░░░░░        ░
+▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒▒   ▒▒   ▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒▒▒▒▒▒▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒▒▒▒▒▒▒▒  ▒▒▒▒
+▓  ▓▓▓▓▓▓▓▓  ▓▓▓▓  ▓▓        ▓▓       ▓▓▓  ▓▓▓▓  ▓▓▓▓▓  ▓▓▓▓▓▓▓▓▓▓▓       ▓▓▓      ▓▓▓▓▓      ▓▓▓  ▓▓▓▓  ▓▓  ▓▓▓▓▓▓▓▓▓▓▓  ▓▓▓▓
+█  ████  ██  ████  ██  █  █  ██  ████  ██        █████  ███████████  ███  ███  ██████████████  ██  ████  ██  ███████████  ████
+██      ████      ███  ████  ██       ███  ████  █████  ███████████  ████  ██        ███      ████      ███        █████  ████
+                                                                                                                              
+[/]""")
+
+                for event in self.last_combat_result.damage_events:
+                    print(
+                        f"[magenta]<(*)> {event.source}  \U0001f4a5 {event.amount}  {event.target} <(*)>[/]"
+                    )
+
+                print("[bold orange]--<>--[/]")
+
+                for creature in pdu.creatures_died:
+                    print(
+                        f"[magenta]-_-| \u2620  {Card.from_id(creature).name()} |-_-[/]"
+                    )
+
+                print("[bold orange]--<>--[/]")
+
+                for player, life_total in pdu.life_totals.items():
+                    print(f"[magenta]>~/ {player}  \u2b21  {life_total} \\~<[/]")
+
             case Type.TRIGGER_ORDER:
                 self.pending_trigger_order = pdu
+                self.input.run(
+                    ClientGame.__trigger_order(
+                        self._seq_num,
+                        {
+                            id: Trigger.from_id(id)
+                            for id in self.pending_trigger_order.trigger_ids
+                        },
+                    )
+                )
 
             case Type.TRIGGER_CHOICE:
                 self.pending_trigger_choice = pdu
+                self.input.run(
+                    ClientGame.__trigger_choice(
+                        self._seq_num,
+                        (
+                            self.pending_trigger_choice.trigger_id,
+                            Trigger.from_id(self.pending_trigger_choice.trigger_id),
+                        ),
+                        self.pending_trigger_choice.legal_targets,
+                    )
+                )
 
     def ready(self):
         """Initial player ready prompt."""
@@ -917,12 +995,14 @@ _________          _______    _______  _______ _________          _______  _____
         return prompt
 
     @staticmethod
-    def __trigger_order(seq_num: int, triggers: dict[TriggerID, Trigger] | None = None):
+    def __trigger_order(
+        seq_num: int, triggers: dict[TriggerID, type[Trigger]] | None = None
+    ):
         """Assign trigger order.
 
         Args:
             seq_num (int): Sequence number
-            triggers (dict[TriggerID,Trigger] | None): List of triggers and card origins
+            triggers (dict[TriggerID, type[Trigger]] | None): List of triggers and card origins
         """
         if triggers is None:
             triggers = {}
@@ -937,7 +1017,7 @@ _________          _______    _______  _______ _________          _______  _____
                         [
                             {
                                 "name": to_formatted_text(
-                                    ANSI(rich_parse(card.trigger_details()))
+                                    ANSI(rich_parse(card.trigger_details()[1]))
                                 ),
                                 "value": id,
                             }
@@ -958,10 +1038,10 @@ _________          _______    _______  _______ _________          _______  _____
 
     @staticmethod
     def __trigger_choice(
-        seq_num: int, trigger: tuple[TriggerID, Trigger], targets: set[ID] = set()
+        seq_num: int, trigger: tuple[TriggerID, type[Trigger]], targets: set[ID] = set()
     ):
         async def prompt():
-            print(trigger[1].trigger_details())
+            print(trigger[1].trigger_details()[1])
 
             with patch_stdout():
                 if await confirm("Activate trigger?").ask_async():

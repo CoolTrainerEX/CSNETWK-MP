@@ -7,6 +7,7 @@ from inspect import isabstract
 from typing import Literal
 
 
+from packages.shared.pdu import TriggerID
 from packages.shared.types import ID
 
 
@@ -161,7 +162,7 @@ class Card(ABC):
                 ]
             )
         if isinstance(self, Trigger):
-            card_text.append(self.trigger_details())
+            card_text.append(self.trigger_details()[1])
 
         return (
             Card.Color.format_color(
@@ -236,7 +237,7 @@ class Card(ABC):
         return self.__id
 
     @classmethod
-    def from_id(cls, id: str):
+    def from_id(cls, id: CardID):
         """Gets the card class from the id.
 
         Args:
@@ -334,13 +335,34 @@ class BattlefieldCard(Card):
 class Trigger(ABC):
     """Trigger interface."""
 
+    __registry: dict[TriggerID, type[Trigger]] = {}
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        """Registers triggers into the master registry."""
+        super().__init_subclass__(**kwargs)
+
+        if not isabstract(cls):
+            cls.__registry[cls.trigger_details()[0]] = cls
+
+    @classmethod
+    def from_id(cls, id: TriggerID):
+        """Gets the trigger class from the id.
+
+        Args:
+            id (str): Trigger ID
+
+        Returns:
+            type[Trigger]: Trigger class
+        """
+        return cls.__registry[id]
+
     @staticmethod
     @abstractmethod
-    def trigger_details() -> str:
+    def trigger_details() -> tuple[TriggerID, str]:
         """Trigger details.
 
         Returns:
-            str: Trigger description
+            tuple[TriggerID, str]: Trigger description
         """
         pass
 
@@ -817,8 +839,11 @@ class GoblinGuide(Trigger, CreatureCard):
         return {CreatureCard.Modifier.HASTE}
 
     @staticmethod
-    def trigger_details() -> str:  # noqa: D102
-        return "Whenever Goblin Guide attacks, defending player reveals top card of library. If it's a land, that player puts it into their hand."
+    def trigger_details() -> tuple[TriggerID, str]:  # noqa: D102
+        return (
+            "trg_001",
+            "Whenever Goblin Guide attacks, defending player reveals top card of library. If it's a land, that player puts it into their hand.",
+        )
 
 
 class GoblinBushwhacker(Kicker, CreatureCard):
@@ -940,8 +965,11 @@ class MonasterySwiftspear(Trigger, CreatureCard):
         return {CreatureCard.Modifier.HASTE}
 
     @staticmethod
-    def trigger_details() -> str:  # noqa: D102
-        return "Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn)."
+    def trigger_details() -> tuple[TriggerID, str]:  # noqa: D102
+        return (
+            "trg_002",
+            "Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn).",
+        )
 
 
 class Counterspell(InstantCard):
@@ -1224,8 +1252,11 @@ class PhantasmalBear(Trigger, CreatureCard):
         return 2
 
     @staticmethod
-    def trigger_details() -> str:  # noqa: D102
-        return "Illusion. When Phantasmal Bear becomes the target of a spell or ability, sacrifice it."
+    def trigger_details() -> tuple[TriggerID, str]:  # noqa: D102
+        return (
+            "trg_003",
+            "Illusion. When Phantasmal Bear becomes the target of a spell or ability, sacrifice it.",
+        )
 
 
 class GiantGrowth(InstantCard):
@@ -1679,8 +1710,8 @@ class WhiteKnight(Trigger, CreatureCard):
         return {CreatureCard.Modifier.FIRST_STRIKE}
 
     @staticmethod
-    def trigger_details() -> str:  # noqa: D102
-        return "Protection from black."
+    def trigger_details() -> tuple[TriggerID, str]:  # noqa: D102
+        return ("trg_004", "Protection from black.")
 
 
 class SerraAngel(CreatureCard):
@@ -1936,8 +1967,11 @@ class GrayMerchantOfAsphodel(Trigger, CreatureCard):
         return 4
 
     @staticmethod
-    def trigger_details() -> str:  # noqa: D102
-        return "When Gray Merchant enters, each opponent loses X life (X = your devotion to black). You gain that much life."
+    def trigger_details() -> tuple[TriggerID, str]:  # noqa: D102
+        return (
+            "trg_005",
+            "When Gray Merchant enters, each opponent loses X life (X = your devotion to black). You gain that much life.",
+        )
 
 
 class Gravedigger(Trigger, CreatureCard):
@@ -1972,8 +2006,11 @@ class Gravedigger(Trigger, CreatureCard):
         return 2
 
     @staticmethod
-    def trigger_details() -> str:  # noqa: D102
-        return "When Gravedigger enters, return target creature card from your graveyard to your hand."
+    def trigger_details() -> tuple[TriggerID, str]:  # noqa: D102
+        return (
+            "trg_006",
+            "When Gravedigger enters, return target creature card from your graveyard to your hand.",
+        )
 
 
 class RoyalAssassin(CreatureCard):
@@ -2052,8 +2089,8 @@ class BlackKnight(Trigger, CreatureCard):
         return {CreatureCard.Modifier.FIRST_STRIKE}
 
     @staticmethod
-    def trigger_details() -> str:  # noqa: D102
-        return "Protection from white."
+    def trigger_details() -> tuple[TriggerID, str]:  # noqa: D102
+        return ("trg_007", "Protection from white.")
 
 
 class SolRing(ArtifactCard):

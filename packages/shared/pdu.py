@@ -464,7 +464,7 @@ class TriggerChoice(BaseModel):
     source_id: CardID
     effect_summary: str
     requires_target: bool
-    legal_targets: ID
+    legal_targets: set[ID]
 
 
 class TriggerChoiceResponse(BaseModel):

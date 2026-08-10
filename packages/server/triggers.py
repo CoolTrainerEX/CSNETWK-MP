@@ -2,13 +2,12 @@
 
 # this ano, this is for handling triggered abilitiess, i forgot to consider this pala
 
-import re
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 from pydantic import BaseModel
 
-from packages.shared.pdu import StackItem, TriggerOrder, TriggerChoice, Type
+from packages.shared.cards import Card
+from packages.shared.pdu import StackItem, TriggerOrder, TriggerChoice
 from packages.shared.player import PlayerID
-from packages.shared.cards import CreatureCard
 
 if TYPE_CHECKING:
     from packages.server.game import ServerGame
@@ -16,6 +15,7 @@ if TYPE_CHECKING:
 
 class PendingTrigger(BaseModel):
     """Internal representation of a triggered ability waiting to be stacked."""
+
     trigger_id: str
     source_id: str
     controller_id: PlayerID
@@ -31,12 +31,12 @@ class TriggerEngine:
     def __init__(self, game: "ServerGame"):
         self.game = game
         self._trigger_counter = 0
-        
+
         # Queue of triggers waiting for player ordering (by player)
         self.pending_ordering: dict[PlayerID, list[PendingTrigger]] = {}
         # Queue of triggers waiting for optional "you may" or target selection (by player)
         self.pending_choices: dict[PlayerID, list[PendingTrigger]] = {}
-        
+
         # Triggers waiting to be pushed to the stack (already ordered/accepted)
         # Format: (controller_id, trigger_obj)
         self.ready_triggers: list[tuple[PlayerID, PendingTrigger]] = []
@@ -59,41 +59,53 @@ class TriggerEngine:
                 abilities = card.abilities_details()
                 if not abilities:
                     continue
-                    
+
                 for idx, ab in enumerate(abilities):
                     text = ab.text.lower()
-                    
+
                     # ETB Triggers ("When this enters" or "When [Name] enters")
                     if event_type == "ETB" and data["source_id"] == cid:
                         if "enters" in text and ("when" in text or "whenever" in text):
-                            new_triggers.append(self._create_trigger(cid, p.id, ab.text))
-                            
+                            new_triggers.append(
+                                self._create_trigger(cid, p.id, ab.text)
+                            )
+
                     # Attack Triggers
                     elif event_type == "ATTACKS" and data["source_id"] == cid:
                         if "attacks" in text and ("when" in text or "whenever" in text):
-                            new_triggers.append(self._create_trigger(cid, p.id, ab.text))
-                            
+                            new_triggers.append(
+                                self._create_trigger(cid, p.id, ab.text)
+                            )
+
                     # Cast Spell Triggers (e.g. Prowess)
                     elif event_type == "CAST_SPELL" and data["controller_id"] == p.id:
                         if "whenever you cast" in text:
-                            new_triggers.append(self._create_trigger(cid, p.id, ab.text))
-                            
+                            new_triggers.append(
+                                self._create_trigger(cid, p.id, ab.text)
+                            )
+
                     # Targeted Triggers (e.g. Phantasmal Bear)
                     elif event_type == "TARGETED" and data["source_id"] == cid:
                         if "becomes the target" in text:
-                            new_triggers.append(self._create_trigger(cid, p.id, ab.text))
+                            new_triggers.append(
+                                self._create_trigger(cid, p.id, ab.text)
+                            )
 
         if new_triggers:
             self._queue_triggers(new_triggers)
 
-    def _create_trigger(self, source_id: str, controller: PlayerID, text: str) -> PendingTrigger:
+    def _create_trigger(
+        self, source_id: str, controller: PlayerID, text: str
+    ) -> PendingTrigger:
         self._trigger_counter += 1
-        tid = f"trg_{self._trigger_counter:03d}"
-        
+        tid = Card.from_id(source_id).trigger_details()[0]
+
         # Check if optional
         is_optional = "you may" in text.lower()
-        requires_target = "target" in text.lower() and "becomes the target" not in text.lower()
-        
+        requires_target = (
+            "target" in text.lower() and "becomes the target" not in text.lower()
+        )
+
         return PendingTrigger(
             trigger_id=tid,
             source_id=source_id,
@@ -109,7 +121,7 @@ class TriggerEngine:
         grouped = {}
         for t in triggers:
             grouped.setdefault(t.controller_id, []).append(t)
-            
+
         for player_id, p_triggers in grouped.items():
             if len(p_triggers) > 1:
                 # Need ordering
@@ -140,12 +152,15 @@ class TriggerEngine:
             if triggers:
                 self.game._seq_num += 1
                 self.game._priority_seq_num = self.game._seq_num
-                
-                return (player_id, TriggerOrder(
-                    seq_num=self.game._seq_num,
-                    player_id=player_id,
-                    trigger_ids=[t.trigger_id for t in triggers]
-                ))
+
+                return (
+                    player_id,
+                    TriggerOrder(
+                        seq_num=self.game._seq_num,
+                        player_id=player_id,
+                        trigger_ids=[t.trigger_id for t in triggers],
+                    ),
+                )
 
         # Check for Pending Choices
         for player_id, triggers in self.pending_choices.items():
@@ -153,35 +168,42 @@ class TriggerEngine:
                 t = triggers[0]
                 self.game._seq_num += 1
                 self.game._priority_seq_num = self.game._seq_num
-                
-                return (player_id, TriggerChoice(
-                    seq_num=self.game._seq_num,
-                    trigger_id=t.trigger_id,
-                    source_id=t.source_id,
-                    effect_summary=t.effect_summary,
-                    legal_targets=[], 
-                    requires_target=t.requires_target
-                ))
+
+                return (
+                    player_id,
+                    TriggerChoice(
+                        seq_num=self.game._seq_num,
+                        trigger_id=t.trigger_id,
+                        source_id=t.source_id,
+                        effect_summary=t.effect_summary,
+                        legal_targets={},
+                        requires_target=t.requires_target,
+                    ),
+                )
 
         # Push Ready Triggers to Stack
         # Triggers are placed: AP first (resolves last), NAP last (resolves first)
         if self.ready_triggers:
             ap_id = self.game._ap().id
-            
+
             # Sort: AP triggers first, then NAP
             self.ready_triggers.sort(key=lambda item: 0 if item[0] == ap_id else 1)
-            
+
             from packages.server.game import _StackEntry
             from packages.shared.pdu import StackPush
-            
+
             for controller, t in self.ready_triggers:
                 self.game._stack_counter += 1
                 sid = f"stk_{self.game._stack_counter:03d}"
-                
+
                 # Retrieve the card obj
                 player_obj = self.game._player_map.get(controller)
-                card_obj = player_obj.battlefield[t.source_id].card if player_obj and t.source_id in player_obj.battlefield else None
-                
+                card_obj = (
+                    player_obj.battlefield[t.source_id].card
+                    if player_obj and t.source_id in player_obj.battlefield
+                    else None
+                )
+
                 self.game._stack.append(
                     _StackEntry(
                         stack_item_id=sid,
@@ -193,7 +215,7 @@ class TriggerEngine:
                         is_permanent=False,
                     )
                 )
-                
+
                 self.game._seq_num += 1
                 sp = StackPush(
                     seq_num=self.game._seq_num,
@@ -205,9 +227,9 @@ class TriggerEngine:
                 )
                 for p in self.game._players:
                     result.setdefault(p.id, []).append(sp)
-            
+
             self.ready_triggers.clear()
-            
+
             return True
 
         return None
@@ -216,11 +238,11 @@ class TriggerEngine:
         """Resolve a TRIGGER_ORDER_RESPONSE."""
         if player_id not in self.pending_ordering:
             return False
-            
+
         triggers = self.pending_ordering[player_id]
         if set(ordered_ids) != set([t.trigger_id for t in triggers]):
             return False
-            
+
         # Reorder them based on player preference
         ordered_triggers = []
         for tid in reversed(ordered_ids):
@@ -228,28 +250,34 @@ class TriggerEngine:
                 if t.trigger_id == tid:
                     ordered_triggers.append(t)
                     break
-                    
+
         for t in ordered_triggers:
             self._queue_for_choice(t)
-            
+
         del self.pending_ordering[player_id]
         return True
 
-    def resolve_choice(self, player_id: PlayerID, trigger_id: str, accept: bool, chosen_target: Optional[str]) -> bool:
+    def resolve_choice(
+        self,
+        player_id: PlayerID,
+        trigger_id: str,
+        accept: bool,
+        chosen_target: Optional[str],
+    ) -> bool:
         """Resolve a TRIGGER_CHOICE_RESPONSE."""
         if player_id not in self.pending_choices or not self.pending_choices[player_id]:
             return False
-            
+
         t = self.pending_choices[player_id][0]
         if t.trigger_id != trigger_id:
             return False
-            
+
         # Remove from pending
         self.pending_choices[player_id].pop(0)
-        
+
         if accept:
             if t.requires_target and chosen_target:
                 t.targets.append(chosen_target)
             self.ready_triggers.append((t.controller_id, t))
-            
+
         return True
