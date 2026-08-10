@@ -644,7 +644,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
             if not attacker_entry or not isinstance(attacker_entry.card, CreatureCard):
                 continue
             pb, _ = self._pump_bonuses(ai.creature_id)
-            power = attacker_entry.card.power() + pb
+            power = attacker_entry.card.base_power() + pb
 
             blockers = self._blockers.get(ai.creature_id, [])
             if not ai.is_blocked:
@@ -668,7 +668,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                     if not blk_entry or not isinstance(blk_entry.card, CreatureCard):
                         continue
                     _, tb = self._pump_bonuses(blk_id)
-                    effective_tough = blk_entry.card.toughness() + tb
+                    effective_tough = blk_entry.card.base_toughness() + tb
                     lethal = max(0, effective_tough - blk_entry.damage)
                     if i == len(order) - 1:
                         assign = dmg_left
@@ -690,7 +690,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                 if not blk_entry or not isinstance(blk_entry.card, CreatureCard):
                     continue
                 pb, _ = self._pump_bonuses(blk_id)
-                blk_power = blk_entry.card.power() + pb
+                blk_power = blk_entry.card.base_power() + pb
                 att_entry.damage += blk_power
                 damage_events.append(
                     {"source": blk_id, "target": att_id, "amount": blk_power}
@@ -703,7 +703,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                 if not e or not isinstance(e.card, CreatureCard):
                     continue
                 _, tb = self._pump_bonuses(cid)
-                if e.damage >= e.card.toughness() + tb:
+                if e.damage >= e.card.base_toughness() + tb:
                     p.send_to_graveyard_from_battlefield(cid)
                     creatures_died.append(cid)
 
@@ -832,7 +832,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                     if not e or not isinstance(e.card, CreatureCard):
                         continue
                     _, tb = self._pump_bonuses(cid)
-                    if e.damage >= e.card.toughness() + tb:
+                    if e.damage >= e.card.base_toughness() + tb:
                         p.send_to_graveyard_from_battlefield(cid)
                         changed = True
 
@@ -962,8 +962,8 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                     d.update(
                         {
                             "damage": e.damage,
-                            "power": e.card.power() + pb,
-                            "toughness": e.card.toughness() + tb,
+                            "power": e.card.base_power() + pb,
+                            "toughness": e.card.base_toughness() + tb,
                             "summoning_sick": e.summoning_sick,
                         }
                     )

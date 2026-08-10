@@ -122,7 +122,7 @@ class GameStateUpdate(BaseModel):
         state (__LobbyState | __GameState):
     """
 
-    class __LobbyState(BaseModel):
+    class LobbyState(BaseModel):
         """State in :attr:`Phase.LOBBY`.
 
         Attributes:
@@ -220,7 +220,7 @@ class GameStateUpdate(BaseModel):
 
     type: Literal[Type.GAME_STATE_UPDATE] = Type.GAME_STATE_UPDATE
     seq_num: int
-    state: __LobbyState | __GameState
+    state: LobbyState | __GameState
 
 
 class MulliganChoice(BaseModel):
@@ -240,7 +240,7 @@ class MulliganChoice(BaseModel):
     type: Literal[Type.MULLIGAN_CHOICE] = Type.MULLIGAN_CHOICE
     seq_num: int
     keep: bool
-    cards_to_bottom: set[CardID]
+    cards_to_bottom: set[CardID] = set()
 
 
 class PhaseTransition(BaseModel):

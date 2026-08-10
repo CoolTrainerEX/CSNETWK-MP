@@ -11,7 +11,7 @@ from asyncio import (
 
 from packages.server.game import ServerGame
 from packages.shared.connection import HOST, PORT, read, write
-from packages.shared.pdu import Pong, Type
+from packages.shared.pdu import Error, Pong, Type
 from packages.shared.player import PlayerID
 
 
@@ -60,9 +60,22 @@ class ServerConnection(object):
                             )
                         else:
                             if req.type == Type.PLAYER_READY:
-                                self.__readers[reader] = req.player_id
-                                self.__writers[req.player_id] = writer
+                                if req.player_id in self.__readers.values():
+                                    await write(
+                                        Error(
+                                            seq_num=req.seq_num,
+                                            code=Error.Code.DUPLICATE_ID,
+                                            message="Player name taken.",
+                                            rejected_action=req,
+                                        ),
+                                        writer,
+                                        self.__verbose,
+                                    )
 
+                                    continue
+                                else:
+                                    self.__readers[reader] = req.player_id
+                                    self.__writers[req.player_id] = writer
                             for player, payload in self.__game.run(
                                 req, self.__readers[reader]
                             ).items():

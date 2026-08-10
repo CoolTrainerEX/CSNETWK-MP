@@ -165,12 +165,12 @@ class Card(ABC):
 
         return (
             Card.Color.format_color(
-                f" ---~~~--- \n {self.name()} {' '.join(Card.Color.format_color(f' {amount} ', Card.Color.C) if color == Card.Color.C else ' '.join([f'{color}'] * amount) for color, amount in self.cast_details().mana_cost.items())} \n\n --------- \n {' '.join(card_type)} \n",
+                f" {'-~Tapped~-' if isinstance(self, BattlefieldCard) and self.tapped else '---~~~---'} \n {self.name()} {' '.join(Card.Color.format_color(f' {amount} ', Card.Color.C) if color == Card.Color.C else ' '.join([f'{color}'] * amount) for color, amount in self.cast_details().mana_cost.items())} \n\n --------- \n {' '.join(card_type)} \n",
                 self.color(),
             )
             + f"[black on white]{'\n'.join(card_text)}[/]"
             + Card.Color.format_color("\n ---(*)--- \n", self.color())
-            + f"{f'    [black on white] {self.power()}/{self.toughness()} [/]' if isinstance(self, CreatureCard) else ''}"
+            + f"{f'    [black on white] {self.power}/{self.toughness - self.damage} [/]' if isinstance(self, CreatureCard) else ''}"
             + Card.Color.format_color(
                 "\n ---~~~--- ",
                 self.color(),
@@ -319,16 +319,7 @@ class BattlefieldCard(Card):
             id (ID): Card ID
         """
         super().__init__(id)
-        self._tapped = False
-
-    @property
-    def tapped(self) -> bool:
-        """Tapped.
-
-        Returns:
-            bool: Tapped
-        """
-        return self._tapped
+        self.tapped = False
 
     @staticmethod
     def abilities_details() -> list[BattlefieldAbilityDetails]:
@@ -377,11 +368,14 @@ class CreatureCard(Subtype, BattlefieldCard):
     def __init__(self, id: ID) -> None:  # noqa: D107
         super().__init__(id)
         self.__modifiers = self.base_modifiers()
-        self._summoning_sick = False
+        self.summoning_sick = False
+        self.power = self.base_power()
+        self.toughness = self.base_toughness()
+        self.damage = 0
 
     @staticmethod
     @abstractmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         """Creature power.
 
         Returns:
@@ -391,7 +385,7 @@ class CreatureCard(Subtype, BattlefieldCard):
 
     @staticmethod
     @abstractmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         """Creature toughness.
 
         Returns:
@@ -415,15 +409,6 @@ class CreatureCard(Subtype, BattlefieldCard):
             set[str]: List of modifiers
         """
         return self.__modifiers
-
-    @property
-    def summoning_sick(self):
-        """Cast creature summoning sickness.
-
-        Returns:
-            bool: Summoning sickness
-        """
-        return self._summoning_sick
 
 
 class ArtifactCreatureCard(ArtifactCard, CreatureCard):
@@ -820,11 +805,11 @@ class GoblinGuide(Trigger, CreatureCard):
         return "Goblin Scout"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 2
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 2
 
     @staticmethod
@@ -860,11 +845,11 @@ class GoblinBushwhacker(Kicker, CreatureCard):
         return "Goblin Warrior"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 1
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 1
 
     @staticmethod
@@ -899,11 +884,11 @@ class RecklessWurm(CreatureCard):
         return "Wurm"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 4
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 4
 
     @staticmethod
@@ -943,11 +928,11 @@ class MonasterySwiftspear(Trigger, CreatureCard):
         return "Human Monk"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 1
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 2
 
     @staticmethod
@@ -1115,11 +1100,11 @@ class MerfolkLooter(CreatureCard):
         return "Merfolk Rogue"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 1
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 1
 
     @staticmethod
@@ -1155,11 +1140,11 @@ class ProdigalSorcerer(CreatureCard):
         return "Human Wizard"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 1
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 1
 
     @staticmethod
@@ -1195,11 +1180,11 @@ class AirElemental(CreatureCard):
         return "Elemental"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 4
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 4
 
     @staticmethod
@@ -1231,11 +1216,11 @@ class PhantasmalBear(Trigger, CreatureCard):
         return "Bear Illusion"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 2
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 2
 
     @staticmethod
@@ -1362,11 +1347,11 @@ class LlanowarElves(CreatureCard):
         return "Elf Druid"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 1
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 1
 
     @staticmethod
@@ -1402,11 +1387,11 @@ class ElvishMystic(CreatureCard):
         return "Elf Druid"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 1
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 1
 
     @staticmethod
@@ -1442,11 +1427,11 @@ class GrizzlyBears(CreatureCard):
         return "Bear"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 2
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 2
 
 
@@ -1474,11 +1459,11 @@ class LeatherbackBaloth(CreatureCard):
         return "Beast"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 4
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 5
 
 
@@ -1506,11 +1491,11 @@ class TrollAscetic(CreatureCard):
         return "Troll Shaman"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 3
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 2
 
     @staticmethod
@@ -1550,11 +1535,11 @@ class WallOfStone(CreatureCard):
         return "Wall"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 0
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 8
 
     @staticmethod
@@ -1682,11 +1667,11 @@ class WhiteKnight(Trigger, CreatureCard):
         return "Human Knight"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 2
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 2
 
     @staticmethod
@@ -1722,11 +1707,11 @@ class SerraAngel(CreatureCard):
         return "Angel"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 4
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 4
 
     @staticmethod
@@ -1758,11 +1743,11 @@ class SavannahLions(CreatureCard):
         return "Cat"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 2
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 1
 
 
@@ -1790,11 +1775,11 @@ class MotherOfRunes(CreatureCard):
         return "Human Cleric"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 1
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 1
 
     @staticmethod
@@ -1943,11 +1928,11 @@ class GrayMerchantOfAsphodel(Trigger, CreatureCard):
         return "Zombie"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 2
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 4
 
     @staticmethod
@@ -1979,11 +1964,11 @@ class Gravedigger(Trigger, CreatureCard):
         return "Zombie"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 2
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 2
 
     @staticmethod
@@ -2015,11 +2000,11 @@ class RoyalAssassin(CreatureCard):
         return "Human Assassin"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 1
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 1
 
     @staticmethod
@@ -2055,11 +2040,11 @@ class BlackKnight(Trigger, CreatureCard):
         return "Human Knight"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 2
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 2
 
     @staticmethod
@@ -2123,11 +2108,11 @@ class Ornithopter(ArtifactCreatureCard):
         return "Thopter"
 
     @staticmethod
-    def power() -> int:  # noqa: D102
+    def base_power() -> int:  # noqa: D102
         return 0
 
     @staticmethod
-    def toughness() -> int:  # noqa: D102
+    def base_toughness() -> int:  # noqa: D102
         return 2
 
     @staticmethod

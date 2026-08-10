@@ -3,11 +3,28 @@
 from typing import TYPE_CHECKING, Any
 
 from packages.shared.pdu import (
-    PDU, PriorityPass, CastSpell, ActivateAbility, PlayLand, Concede,
-    Error, Type, StackItem, StackPush, PriorityGrant, GameOver
+    PDU,
+    PriorityPass,
+    CastSpell,
+    ActivateAbility,
+    PlayLand,
+    Concede,
+    Error,
+    Type,
+    StackItem,
+    StackPush,
+    PriorityGrant,
+    GameOver,
 )
 from packages.shared.player import PlayerID
-from packages.shared.cards import Card, LandCard, SorceryCard, CreatureCard, EnchantmentCard, ArtifactCard
+from packages.shared.cards import (
+    Card,
+    LandCard,
+    SorceryCard,
+    CreatureCard,
+    EnchantmentCard,
+    ArtifactCard,
+)
 
 if TYPE_CHECKING:
     from packages.server.game import ServerGame, ServerPlayer, _StackEntry
@@ -21,20 +38,26 @@ class PriorityMixin:
     # Priority window core
     # -----------------------------------------------------------------------
 
-    def _handle_priority_pdu(self: "ServerGame", pdu: PDU, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def _handle_priority_pdu(
+        self: "ServerGame", pdu: PDU, player: PlayerID
+    ) -> dict[PlayerID, list[PDU]]:
         """Process any PDU arriving during a priority window."""
         result: dict[PlayerID, list[PDU]] = {p.id: [] for p in self._players}
 
         if self._priority_holder_idx is None:
             result[player].append(
-                self._make_error(Error.Code.WRONG_PHASE, "No priority window active.", pdu)
+                self._make_error(
+                    Error.Code.WRONG_PHASE, "No priority window active.", pdu
+                )
             )
             return result
 
         holder = self._players[self._priority_holder_idx]
         if holder.id != player:
             result[player].append(
-                self._make_error(Error.Code.NOT_YOUR_PRIORITY, "You do not hold priority.", pdu)
+                self._make_error(
+                    Error.Code.NOT_YOUR_PRIORITY, "You do not hold priority.", pdu
+                )
             )
             return result
 
@@ -52,7 +75,11 @@ class PriorityMixin:
             return self._handle_trigger_choice_response(pdu, player, holder, result)
         else:
             result[player].append(
-                self._make_error(Error.Code.WRONG_PHASE, f"Invalid action in priority window: {pdu.type}.", pdu)
+                self._make_error(
+                    Error.Code.WRONG_PHASE,
+                    f"Invalid action in priority window: {pdu.type}.",
+                    pdu,
+                )
             )
             result[player].append(self._reissue_priority(holder))
             return result
@@ -62,7 +89,11 @@ class PriorityMixin:
     ) -> dict:
         if pdu.seq_num != self._priority_seq_num:
             result[holder.id].append(
-                self._make_error(Error.Code.STALE_ACTION, f"Stale. Expected {self._priority_seq_num}, got {pdu.seq_num}.", pdu)
+                self._make_error(
+                    Error.Code.STALE_ACTION,
+                    f"Stale. Expected {self._priority_seq_num}, got {pdu.seq_num}.",
+                    pdu,
+                )
             )
             result[holder.id].append(self._reissue_priority(holder))
             return result
@@ -88,7 +119,11 @@ class PriorityMixin:
     # -----------------------------------------------------------------------
 
     def _handle_cast_spell(
-        self: "ServerGame", pdu: CastSpell, player: PlayerID, holder: "ServerPlayer", result: dict
+        self: "ServerGame",
+        pdu: CastSpell,
+        player: PlayerID,
+        holder: "ServerPlayer",
+        result: dict,
     ) -> dict:
         from packages.server.game import _StackEntry, GamePhase
 
@@ -97,42 +132,84 @@ class PriorityMixin:
         player_obj = self._player_map.get(player)
 
         if cs.seq_num != self._priority_seq_num:
-            result[player].append(self._make_error(Error.Code.STALE_ACTION, f"Stale. Expected {self._priority_seq_num}.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.STALE_ACTION,
+                    f"Stale. Expected {self._priority_seq_num}.",
+                    pdu,
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         card = player_obj.card_in_hand(cs.card_id) if player_obj else None
         if not card:
-            result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"Card {cs.card_id} not in hand.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.ILLEGAL_ACTION, f"Card {cs.card_id} not in hand.", pdu
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         # Sorcery-speed restriction
-        sorcery_speed = isinstance(card, (SorceryCard, CreatureCard, EnchantmentCard, ArtifactCard))
+        sorcery_speed = isinstance(
+            card, (SorceryCard, CreatureCard, EnchantmentCard, ArtifactCard)
+        )
         if sorcery_speed:
             if player != ap.id:
-                result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Sorcery-speed: only the Active Player may cast.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.WRONG_PHASE,
+                        "Sorcery-speed: only the Active Player may cast.",
+                        pdu,
+                    )
+                )
                 result[player].append(self._reissue_priority(holder))
                 return result
             if self.state not in (GamePhase.PRECOMBAT_MAIN, GamePhase.POSTCOMBAT_MAIN):
-                result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Sorcery-speed: only castable during Main Phase.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.WRONG_PHASE,
+                        "Sorcery-speed: only castable during Main Phase.",
+                        pdu,
+                    )
+                )
                 result[player].append(self._reissue_priority(holder))
                 return result
             if self._stack:
-                result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Sorcery-speed: stack must be empty.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.WRONG_PHASE,
+                        "Sorcery-speed: stack must be empty.",
+                        pdu,
+                    )
+                )
                 result[player].append(self._reissue_priority(holder))
                 return result
 
         # Target validation
         if not self._validate_targets(card, cs.targets):
-            result[player].append(self._make_error(Error.Code.ILLEGAL_TARGET, "One or more targets are illegal.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.ILLEGAL_TARGET, "One or more targets are illegal.", pdu
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         # Mana validation
-        ok, to_tap = self._validate_and_pay_mana(player_obj, cs.mana_payment, card.cost())
+        ok, to_tap = self._validate_and_pay_mana(
+            player_obj, cs.mana_payment, card.cast_details().mana_cost
+        )
         if not ok:
-            result[player].append(self._make_error(Error.Code.INSUFFICIENT_MANA, "Insufficient mana to cast spell.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.INSUFFICIENT_MANA,
+                    "Insufficient mana to cast spell.",
+                    pdu,
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
@@ -167,10 +244,14 @@ class PriorityMixin:
         )
         for p in self._players:
             result[p.id].append(sp)
-            
-        self._trigger_engine.dispatch("CAST_SPELL", {"source_id": card.id, "controller_id": player, "card": card})
+
+        self._trigger_engine.dispatch(
+            "CAST_SPELL", {"source_id": card.id, "controller_id": player, "card": card}
+        )
         for target_id in cs.targets:
-            self._trigger_engine.dispatch("TARGETED", {"source_id": target_id, "controller_id": player})
+            self._trigger_engine.dispatch(
+                "TARGETED", {"source_id": target_id, "controller_id": player}
+            )
 
         # Caster retains priority; reset consecutive passes
         self._consecutive_passes = 0
@@ -178,7 +259,11 @@ class PriorityMixin:
         return result
 
     def _handle_activate_ability(
-        self: "ServerGame", pdu: ActivateAbility, player: PlayerID, holder: "ServerPlayer", result: dict
+        self: "ServerGame",
+        pdu: ActivateAbility,
+        player: PlayerID,
+        holder: "ServerPlayer",
+        result: dict,
     ) -> dict:
         from packages.server.game import _StackEntry
 
@@ -186,31 +271,61 @@ class PriorityMixin:
         player_obj = self._player_map.get(player)
 
         if aa.seq_num != self._priority_seq_num:
-            result[player].append(self._make_error(Error.Code.STALE_ACTION, f"Stale. Expected {self._priority_seq_num}.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.STALE_ACTION,
+                    f"Stale. Expected {self._priority_seq_num}.",
+                    pdu,
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         entry = player_obj.battlefield.get(aa.source_id) if player_obj else None
         if not entry:
-            result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{aa.source_id} not on battlefield.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.ILLEGAL_ACTION,
+                    f"{aa.source_id} not on battlefield.",
+                    pdu,
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         if aa.cost_payment.tap:
             if isinstance(entry.card, CreatureCard) and entry.summoning_sick:
-                result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{aa.source_id} has summoning sickness.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.ILLEGAL_ACTION,
+                        f"{aa.source_id} has summoning sickness.",
+                        pdu,
+                    )
+                )
                 result[player].append(self._reissue_priority(holder))
                 return result
             if entry.tapped:
-                result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{aa.source_id} is already tapped.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.ILLEGAL_ACTION,
+                        f"{aa.source_id} is already tapped.",
+                        pdu,
+                    )
+                )
                 result[player].append(self._reissue_priority(holder))
                 return result
             player_obj.tap(aa.source_id)
 
         if aa.cost_payment.mana:
-            ok, to_tap = self._validate_and_pay_mana(player_obj, aa.cost_payment.mana, aa.cost_payment.mana)
+            ok, to_tap = self._validate_and_pay_mana(
+                player_obj, aa.cost_payment.mana, aa.cost_payment.mana
+            )
             if not ok:
-                result[player].append(self._make_error(Error.Code.INSUFFICIENT_MANA, "Insufficient mana.", pdu))
+                result[player].append(
+                    self._make_error(
+                        Error.Code.INSUFFICIENT_MANA, "Insufficient mana.", pdu
+                    )
+                )
                 result[player].append(self._reissue_priority(holder))
                 return result
             for cid in to_tap:
@@ -241,16 +356,22 @@ class PriorityMixin:
         )
         for p in self._players:
             result[p.id].append(sp)
-            
+
         for target_id in aa.targets:
-            self._trigger_engine.dispatch("TARGETED", {"source_id": target_id, "controller_id": player})
+            self._trigger_engine.dispatch(
+                "TARGETED", {"source_id": target_id, "controller_id": player}
+            )
 
         self._consecutive_passes = 0
         self._grant_priority_to(player_obj, result)
         return result
 
     def _handle_play_land(
-        self: "ServerGame", pdu: PlayLand, player: PlayerID, holder: "ServerPlayer", result: dict
+        self: "ServerGame",
+        pdu: PlayLand,
+        player: PlayerID,
+        holder: "ServerPlayer",
+        result: dict,
     ) -> dict:
         from packages.server.game import GamePhase
 
@@ -259,33 +380,63 @@ class PriorityMixin:
         player_obj = self._player_map.get(player)
 
         if player != ap.id:
-            result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Only the Active Player may play a land.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.WRONG_PHASE,
+                    "Only the Active Player may play a land.",
+                    pdu,
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         if pl.seq_num != self._priority_seq_num:
-            result[player].append(self._make_error(Error.Code.STALE_ACTION, f"Stale. Expected {self._priority_seq_num}.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.STALE_ACTION,
+                    f"Stale. Expected {self._priority_seq_num}.",
+                    pdu,
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         if self.state not in (GamePhase.PRECOMBAT_MAIN, GamePhase.POSTCOMBAT_MAIN):
-            result[player].append(self._make_error(Error.Code.WRONG_PHASE, "Lands can only be played during Main Phase.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.WRONG_PHASE,
+                    "Lands can only be played during Main Phase.",
+                    pdu,
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         if self._land_played_this_turn:
-            result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, "Already played a land this turn.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.ILLEGAL_ACTION, "Already played a land this turn.", pdu
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         card = player_obj.card_in_hand(pl.card_id) if player_obj else None
         if not card:
-            result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"Card {pl.card_id} not in hand.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.ILLEGAL_ACTION, f"Card {pl.card_id} not in hand.", pdu
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
         if not isinstance(card, LandCard):
-            result[player].append(self._make_error(Error.Code.ILLEGAL_ACTION, f"{pl.card_id} is not a land.", pdu))
+            result[player].append(
+                self._make_error(
+                    Error.Code.ILLEGAL_ACTION, f"{pl.card_id} is not a land.", pdu
+                )
+            )
             result[player].append(self._reissue_priority(holder))
             return result
 
@@ -300,7 +451,9 @@ class PriorityMixin:
         self._grant_priority_to(ap, result)
         return result
 
-    def _handle_concede(self: "ServerGame", pdu: Concede, player: PlayerID) -> dict[PlayerID, list[PDU]]:
+    def _handle_concede(
+        self: "ServerGame", pdu: Concede, player: PlayerID
+    ) -> dict[PlayerID, list[PDU]]:
         result: dict[PlayerID, list[PDU]] = {p.id: [] for p in self._players}
         if len(self._players) < 2:
             return result
@@ -323,39 +476,61 @@ class PriorityMixin:
         self._reset_to_lobby()
         return result
 
-    def _handle_trigger_order_response(self: "ServerGame", pdu: PDU, player: PlayerID, holder: "ServerPlayer", result: dict) -> dict:
+    def _handle_trigger_order_response(
+        self: "ServerGame",
+        pdu: PDU,
+        player: PlayerID,
+        holder: "ServerPlayer",
+        result: dict,
+    ) -> dict:
         if pdu.seq_num != self._priority_seq_num:
             result[holder.id].append(
-                self._make_error(Error.Code.STALE_ACTION, "Stale trigger order response.", pdu)
+                self._make_error(
+                    Error.Code.STALE_ACTION, "Stale trigger order response.", pdu
+                )
             )
             return result
-            
+
         ok = self._trigger_engine.resolve_order(player, pdu.trigger_ids)
         if not ok:
             result[holder.id].append(
-                self._make_error(Error.Code.ILLEGAL_ACTION, "Invalid trigger order.", pdu)
+                self._make_error(
+                    Error.Code.ILLEGAL_ACTION, "Invalid trigger order.", pdu
+                )
             )
             result[holder.id].append(self._reissue_priority(holder))
             return result
-            
+
         self._grant_priority_to(holder, result)
         return result
 
-    def _handle_trigger_choice_response(self: "ServerGame", pdu: PDU, player: PlayerID, holder: "ServerPlayer", result: dict) -> dict:
+    def _handle_trigger_choice_response(
+        self: "ServerGame",
+        pdu: PDU,
+        player: PlayerID,
+        holder: "ServerPlayer",
+        result: dict,
+    ) -> dict:
         if pdu.seq_num != self._priority_seq_num:
             result[holder.id].append(
-                self._make_error(Error.Code.STALE_ACTION, "Stale trigger choice response.", pdu)
+                self._make_error(
+                    Error.Code.STALE_ACTION, "Stale trigger choice response.", pdu
+                )
             )
             return result
-            
-        ok = self._trigger_engine.resolve_choice(player, pdu.trigger_id, pdu.accept, pdu.chosen_target)
+
+        ok = self._trigger_engine.resolve_choice(
+            player, pdu.trigger_id, pdu.accept, pdu.chosen_target
+        )
         if not ok:
             result[holder.id].append(
-                self._make_error(Error.Code.ILLEGAL_ACTION, "Invalid trigger choice.", pdu)
+                self._make_error(
+                    Error.Code.ILLEGAL_ACTION, "Invalid trigger choice.", pdu
+                )
             )
             result[holder.id].append(self._reissue_priority(holder))
             return result
-            
+
         self._grant_priority_to(holder, result)
         return result
 
@@ -368,9 +543,11 @@ class PriorityMixin:
         self._consecutive_passes = 0
         self._grant_priority_to(self._ap(), result)
 
-    def _grant_priority_to(self: "ServerGame", player: "ServerPlayer", result: dict) -> None:
+    def _grant_priority_to(
+        self: "ServerGame", player: "ServerPlayer", result: dict
+    ) -> None:
         """Issue a new PRIORITY_GRANT to *player*, unless triggers need handling."""
-        
+
         interaction = self._trigger_engine.get_pending_interaction(result)
         if interaction is True:
             self._consecutive_passes = 0
@@ -379,7 +556,7 @@ class PriorityMixin:
         elif interaction:
             target_id, pdu = interaction
             resp_player = self._player_map.get(target_id, player)
-            
+
             self._priority_holder_idx = self._players.index(resp_player)
             result[resp_player.id].append(pdu)
             return

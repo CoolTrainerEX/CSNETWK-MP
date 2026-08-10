@@ -24,7 +24,7 @@ def handle_mulligan(
         return result  # already decided; ignore
 
     mc: MulliganChoice = pdu
-    expected = game._mulligan_gsu_seq.get(player, 0)
+    expected = game._mulligan_gsu_seq.get(player, 0) + 1
     if mc.seq_num != expected:
         result[player].append(
             game._make_error(
