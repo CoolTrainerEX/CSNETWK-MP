@@ -168,6 +168,18 @@ class TriggerEngine:
                 t = triggers[0]
                 self.game._seq_num += 1
                 self.game._priority_seq_num = self.game._seq_num
+                legal_targets = set()
+
+                if t.requires_target:
+                    if "graveyard" in t.effect_summary.lower():
+                        p_obj = self.game._player_map.get(t.controller_id)
+
+                        if p_obj:
+                            legal_targets.update(p_obj.graveyard)
+                    else:
+                        for p in self.game._players:
+                            legal_targets.add(p.id)
+                            legal_targets.update(p.battlefield.keys())
 
                 return (
                     player_id,
@@ -176,7 +188,7 @@ class TriggerEngine:
                         trigger_id=t.trigger_id,
                         source_id=t.source_id,
                         effect_summary=t.effect_summary,
-                        legal_targets={},
+                        legal_targets=legal_targets,
                         requires_target=t.requires_target,
                     ),
                 )
@@ -223,7 +235,7 @@ class TriggerEngine:
                     item_type=StackItem.ItemType.TRIGGER_ABILITY,
                     source=t.source_id,
                     targets=t.targets,
-                    cotroller=controller,
+                    controller=controller,
                 )
                 for p in self.game._players:
                     result.setdefault(p.id, []).append(sp)

@@ -1,5 +1,6 @@
 """Server connection module."""
 
+import json
 from asyncio import (
     IncompleteReadError,
     Semaphore,
@@ -8,10 +9,10 @@ from asyncio import (
     start_server,
     timeout,
 )
-
+from pydantic import ValidationError
 from packages.server.game import ServerGame
 from packages.shared.connection import HOST, PORT, read, write
-from packages.shared.pdu import Error, Pong, Type
+from packages.shared.pdu import Error, Ping, Pong, Type
 from packages.shared.player import PlayerID
 
 
@@ -46,11 +47,23 @@ class ServerConnection(object):
                     time_limit = None
 
                     while True:
-                        if time_limit:
-                            async with timeout(time_limit / 1000.0):
+                        try:
+                            if time_limit:
+                                async with timeout(time_limit / 1000.0):
+                                    req = await read(reader, self.__verbose)
+                            else:
                                 req = await read(reader, self.__verbose)
-                        else:
-                            req = await read(reader, self.__verbose)
+                        except (ValidationError, json.JSONDecodeError):
+                            self.__game._seq_num += 1
+                            err = Error(
+                                seq_num=self.__game._seq_num,
+                                code=Error.Code.INVALID_JSON,
+                                message="Invalid JSON payload.",
+                                rejected_action=Ping(seq_num=0, timestamp=0.0)  # dummy payload
+                            )
+
+                            await write(err, writer, self.__verbose)
+                            continue
 
                         if req.type == Type.PING:
                             await write(

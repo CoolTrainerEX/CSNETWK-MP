@@ -371,7 +371,7 @@ class StackItem(BaseModel):
         item_type (ItemType):
         source (CardID):
         targets (set[ID]):
-        cotroller (PlayerID):
+        controller (PlayerID):
     """
 
     class ItemType(StrEnum):
@@ -386,7 +386,7 @@ class StackItem(BaseModel):
     item_type: ItemType
     source: CardID
     targets: set[ID]
-    cotroller: PlayerID
+    controller: PlayerID
 
 
 class StackPush(StackItem):

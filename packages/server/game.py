@@ -240,7 +240,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
     def __init__(self) -> None:
         """Create a game instance."""
         super().__init__()
-        
+
         from packages.server.triggers import TriggerEngine
         self._trigger_engine = TriggerEngine(self)
 
@@ -317,7 +317,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                 return handle_game_setup(self, pdu, player)
             case State.MULLIGAN:
                 from packages.server.states.mulligan import handle_mulligan
-                
+
                 return handle_mulligan(self, pdu, player)
             case CombatStep.DECLARE_ATTACKERS:
                 return self._declare_attackers(pdu, player)
@@ -700,10 +700,14 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         for p in self._players:
             for cid in list(p.battlefield.keys()):
                 e = p.battlefield.get(cid)
+
                 if not e or not isinstance(e.card, CreatureCard):
                     continue
+
                 _, tb = self._pump_bonuses(cid)
-                if e.damage >= e.card.base_toughness() + tb:
+                effective_toughness = e.card.base_toughness() + tb
+
+                if effective_toughness <= 0 or e.damage >= effective_toughness:
                     p.send_to_graveyard_from_battlefield(cid)
                     creatures_died.append(cid)
 
@@ -829,10 +833,14 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
             for p in self._players:
                 for cid in list(p.battlefield.keys()):
                     e = p.battlefield.get(cid)
+
                     if not e or not isinstance(e.card, CreatureCard):
                         continue
+
                     _, tb = self._pump_bonuses(cid)
-                    if e.damage >= e.card.base_toughness() + tb:
+                    effective_toughness = e.card.base_toughness() + tb
+
+                    if effective_toughness <= 0 or e.damage >= effective_toughness:
                         p.send_to_graveyard_from_battlefield(cid)
                         changed = True
 
@@ -908,7 +916,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
     # Target validation
     # -----------------------------------------------------------------------
 
-    def _validate_targets(self, card: Card, targets: set[str]) -> bool:
+    def _validate_targets(self, card: Card, targets: set[str], controller: PlayerID) -> bool:
         """Return True if *targets* are legal for *card* at cast time.
 
         Delegates per-card checks to effects.py; the server checks
@@ -920,6 +928,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
             player_map=self._player_map,
             players=self._players,
             stack=self._stack,
+            controller=controller,
         )
 
     def _is_target_still_valid(self, target: str) -> bool:
@@ -982,7 +991,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                 "item_type": e.item_type,
                 "source": e.source,
                 "targets": list(e.targets),
-                "cotroller": e.controller,
+                "controller": e.controller,
             }
             for e in self._stack
         ]
@@ -1108,6 +1117,7 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
 
         for att in da.attackers:
             entry = ap.battlefield.get(att.creature_id)
+
             if not entry or not isinstance(entry.card, CreatureCard):
                 result[player].append(
                     self._make_error(
@@ -1115,11 +1125,22 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                     )
                 )
                 return result
+
             if entry.tapped or entry.summoning_sick:
                 result[player].append(
                     self._make_error(
                         Error.Code.ILLEGAL_ACTION,
                         f"{att.creature_id} cannot attack.",
+                        pdu,
+                    )
+                )
+                return result
+
+            if CreatureCard.Modifier.DEFENDER in entry.card.modifiers():
+                result[player].append(
+                    self._make_error(
+                        Error.Code.ILLEGAL_ACTION,
+                        f"{att.creature_id} has Defender.",
                         pdu,
                     )
                 )
@@ -1193,6 +1214,22 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
                     )
                 )
                 return result
+
+            # Flying
+            ap = self._ap()
+            attacker_entry = ap.battlefield.get(blk.blocking_id)
+            if attacker_entry and isinstance(attacker_entry.card, CreatureCard):
+                if CreatureCard.Modifier.FLYING in attacker_entry.card.modifiers():
+                    if CreatureCard.Modifier.FLYING not in entry.card.modifiers():
+                        result[player].append(
+                            self._make_error(
+                                Error.Code.ILLEGAL_ACTION,
+                                f"{blk.creature_id} cannot block a flying creature.",
+                                pdu
+                            )
+                        )
+                        return result
+
             self._blockers.setdefault(blk.blocking_id, []).append(blk.creature_id)
 
         for ai in self._attackers:
@@ -1227,6 +1264,13 @@ class ServerGame(PriorityMixin, UtilitiesMixin, Game):
         if ado.seq_num != self._assign_damage_order_seq_num:
             result[player].append(
                 self._make_error(Error.Code.STALE_ACTION, "Stale action.", pdu)
+            )
+            return result
+
+        actual_blockers = self._blockers.get(ado.attacker_id, [])
+        if set(ado.blocker_order) != set(actual_blockers) or len(ado.blocker_order) != len(actual_blockers):
+            result[player].append(
+                self._make_error(Error.Code.ILLEGAL_ACTION, "Invalid blocker order.", pdu)
             )
             return result
 

@@ -7,7 +7,7 @@ from inspect import isabstract
 from typing import Literal
 
 
-from packages.shared.pdu import TriggerID
+from packages.shared.types import ID as TriggerID
 from packages.shared.types import ID
 
 

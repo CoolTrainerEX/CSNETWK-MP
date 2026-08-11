@@ -189,7 +189,7 @@ class PriorityMixin:
                 return result
 
         # Target validation
-        if not self._validate_targets(card, cs.targets):
+        if not self._validate_targets(card, cs.targets, player):
             result[player].append(
                 self._make_error(
                     Error.Code.ILLEGAL_TARGET, "One or more targets are illegal.", pdu
@@ -240,7 +240,7 @@ class PriorityMixin:
             item_type=StackItem.ItemType.SPELL,
             source=card.id,
             targets=cs.targets,
-            cotroller=player,
+            controller=player,
         )
         for p in self._players:
             result[p.id].append(sp)
@@ -352,7 +352,7 @@ class PriorityMixin:
             item_type=StackItem.ItemType.ABILITY,
             source=aa.source_id,
             targets=aa.targets,
-            cotroller=player,
+            controller=player,
         )
         for p in self._players:
             result[p.id].append(sp)
