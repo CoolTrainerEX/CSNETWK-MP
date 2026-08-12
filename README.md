@@ -1,5 +1,9 @@
 # CSNETWK MP
 
+## Demo Link
+
+- https://drive.google.com/file/d/1whb85PdQ-5eQQNUWYEa5QfJHuZKK7wtK/view?usp=sharing
+
 ## Build and Run
 
 1. Install [uv](https://docs.astral.sh/uv/).
@@ -69,6 +73,29 @@ uv run client --verbose
 | **[Pydantic](https://pydantic-docs.helpmanual.io/)**          | `>= 2.13.4`         | PDU validation and serialization.                       |
 | **[Prompt Toolkit](https://docs.python-prompt-toolkit.org/)** | `>= 3.0.53`         | Prevents terminal display corruption during user input. |
 | **[Questionary](https://questionary.readthedocs.io/)**        | `>= 2.1.1`          | Dropdown/checkbox prompts for game actions              |
+
+## Implemented Card Abilities and Effects
+
+- Deal damage to target(s) (e.g., Lightning Bolt 3 damage, Shock 2 damage, Lava Spike 3 damage)
+- Destroy target creature/artifact (e.g., Terror, Doom Blade, Naturalize)
+- Exile target creature (e.g., Swords to Plowshares, Path to Exile, Graveyard Return)
+- Draw cards (e.g., Ponder, Merfolk Looter)
+- Discard cards (e.g., Mind Rot)
+- Mill cards (e.g., Millstone)
+- Gain life (e.g., Healing Salve, Gray Merchant of Asphodel)
+- Counter target spell (e.g., Counterspell, Cancel, Negate, Mana Leak)
+- Return target creature to hand (e.g., Raise Dead, Gravedigger)
+- Pump power/toughness (e.g., Giant Growth +3/+3, Vines of Vastwood +4/+4)
+- Search library (e.g., Rampant Growth, Path to Exile)
+- Special triggered abilities (e.g., Goblin Guide reveal land on attack, Monastery Swiftspear prowess, White/Black Knight protection, Gravekeeper's Discipline
+- First Strike (White Knight, Black Knight)
+- Flying (Air Elemental, Serra Angel)
+- Hexproof (Troll Ascetic)
+- Defender (Wall of Stone)
+- Haste (Goblin Guide, Monastery Swiftspear
+- Trample (Reckless Wurm)
+- Madness (Reckless Wurm discard for reduce
+- Cast details text defines the effect (e.g., "Deal 3 damage to target", "Exile target creature", "Put top 2 cards of library into hand")
 
 ## Limitations and Deviations
 
