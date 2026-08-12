@@ -58,4 +58,4 @@ uv run client --verbose
 
 ## Limitations and Deviations
 
-TODO
+None as of the current version of this application.
