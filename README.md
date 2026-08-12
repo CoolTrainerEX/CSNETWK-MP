@@ -66,11 +66,6 @@ uv run client --verbose
 
 ## Libraries
 
-- Rich – terminal coloring/UI (both client & server)
-- Pydantic – PDU validation and serialization
-- Prompt-toolkit – CLI interaction framework
-- Questionary – dropdown/checkbox prompts for game actions
-
 | Library                                                       | Version Requirement | Purpose                                                 |
 | :------------------------------------------------------------ | :------------------ | :------------------------------------------------------ |
 | **[Rich](https://rich.readthedocs.io/)**                      | `>= 15.0.0`         | Terminal coloring/UI (both client & server)             |
